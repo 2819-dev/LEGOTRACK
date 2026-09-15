@@ -37,16 +37,28 @@ type Standard = {
   is_exception: boolean;
 };
 
+type CatalogSet = {
+  id: string;
+  name: string;
+  image_data: string;
+  notes: string | null;
+  owner_id: string | null;
+  owner_name: string | null;
+};
+
 const CATEGORIES = ["hair", "head", "shirt", "pants"] as const;
 
 export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
-  const [tab, setTab] = useState<"scan" | "users" | "reviews" | "rules">("scan");
+  const [tab, setTab] = useState<"scan" | "sets" | "users" | "reviews" | "rules">("scan");
+  const [scanMode, setScanMode] = useState<"minifig" | "set">("minifig");
+  const [setName, setSetName] = useState("");
   const [users, setUsers] = useState<UserRow[]>([]);
   const [builds, setBuilds] = useState<Build[]>([]);
   const [standards, setStandards] = useState<Standard[]>([]);
   const [pieces, setPieces] = useState<Piece[]>([]);
+  const [catalog, setCatalog] = useState<CatalogSet[]>([]);
   const [scanPreview, setScanPreview] = useState<Piece[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -60,16 +72,18 @@ export default function AdminPage() {
   const [ruleException, setRuleException] = useState(false);
 
   async function loadAll() {
-    const [u, b, s, p] = await Promise.all([
+    const [u, b, s, p, c] = await Promise.all([
       fetch("/api/admin/users").then((r) => r.json()),
       fetch("/api/builds").then((r) => r.json()),
       fetch("/api/standards").then((r) => r.json()),
       fetch("/api/avatar/pieces").then((r) => r.json()),
+      fetch("/api/catalog").then((r) => r.json()),
     ]);
     setUsers(u.users || []);
     setBuilds(b.builds || []);
     setStandards(s.standards || []);
     setPieces(p.pieces || []);
+    setCatalog(c.sets || []);
   }
 
   useEffect(() => {
@@ -99,15 +113,26 @@ export default function AdminPage() {
         const res = await fetch("/api/admin/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: reader.result }),
+          body: JSON.stringify({
+            image: reader.result,
+            mode: scanMode,
+            name: setName || file.name.replace(/\.[^.]+$/, ""),
+          }),
         });
         const data = await res.json();
         if (!res.ok) {
           setMsg(data.error || "Scan failed");
           return;
         }
-        setScanPreview(data.pieces || []);
-        setMsg("Split into hair / head / shirt / pants. Reassign tabs if needed.");
+        if (data.mode === "set") {
+          setScanPreview([]);
+          setSetName("");
+          setMsg(data.note || "Set saved to catalog.");
+          setTab("sets");
+        } else {
+          setScanPreview(data.pieces || []);
+          setMsg(data.note || "Split into separate pieces.");
+        }
         loadAll();
       } finally {
         setBusy(false);
@@ -123,6 +148,20 @@ export default function AdminPage() {
       body: JSON.stringify({ id, category }),
     });
     setScanPreview((prev) => prev.map((p) => (p.id === id ? { ...p, category } : p)));
+    loadAll();
+  }
+
+  async function assignSetOwner(id: string, owner_id: string) {
+    await fetch("/api/catalog", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, owner_id: owner_id || null }),
+    });
+    loadAll();
+  }
+
+  async function deleteSet(id: string) {
+    await fetch(`/api/catalog?id=${id}`, { method: "DELETE" });
     loadAll();
   }
 
@@ -185,14 +224,15 @@ export default function AdminPage() {
       <section className="panel">
         <h1 className="brand-title text-3xl">Admin panel</h1>
         <p className="mt-1 text-sm text-black/70">
-          Scan minifigs, manage people, review builds, edit city rules.
+          Scan minifigs and approved sets, assign owners, review builds, edit rules.
         </p>
       </section>
 
       <div className="mt-3 flex gap-1 overflow-x-auto">
         {(
           [
-            ["scan", "Scan pieces"],
+            ["scan", "Scan"],
+            ["sets", "Sets"],
             ["users", "People"],
             ["reviews", "Reviews"],
             ["rules", "Rules"],
@@ -215,11 +255,47 @@ export default function AdminPage() {
 
       {tab === "scan" && (
         <section className="panel mt-4 space-y-3">
-          <h2 className="brand-title text-xl">Scan minifig / pieces</h2>
-          <p className="text-sm text-black/70">
-            Upload a full figure or a tray of parts. Full characters are always saved as separate
-            hair, head, shirt, and pants — never as one locked outfit.
-          </p>
+          <h2 className="brand-title text-xl">Scan into LEGOTRACK</h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setScanMode("minifig")}
+              className={`flex-1 rounded-md border-2 border-black px-2 py-2 text-sm font-bold ${
+                scanMode === "minifig" ? "bg-black text-white" : "bg-white"
+              }`}
+            >
+              Minifig pieces
+            </button>
+            <button
+              type="button"
+              onClick={() => setScanMode("set")}
+              className={`flex-1 rounded-md border-2 border-black px-2 py-2 text-sm font-bold ${
+                scanMode === "set" ? "bg-black text-white" : "bg-white"
+              }`}
+            >
+              Approved set
+            </button>
+          </div>
+
+          {scanMode === "minifig" ? (
+            <p className="text-sm text-black/70">
+              Photo a full figure or parts tray. Full characters always become separate hair / head /
+              shirt / pants pieces.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-black/70">
+                Photo an approved Lego set for the city catalog, then assign who owns it.
+              </p>
+              <input
+                className="field"
+                placeholder="Set name (e.g. Fire Station)"
+                value={setName}
+                onChange={(e) => setSetName(e.target.value)}
+              />
+            </>
+          )}
+
           <input
             type="file"
             accept="image/*"
@@ -227,36 +303,91 @@ export default function AdminPage() {
             disabled={busy}
             onChange={(e) => onScanFile(e.target.files?.[0] || null)}
           />
-          {busy && <p className="text-sm font-semibold">Splitting…</p>}
-          <div className="grid grid-cols-2 gap-2">
-            {scanPreview.map((p) => (
-              <div key={p.id} className="rounded-lg border-2 border-black p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.image_data} alt="" className="h-24 w-full object-contain" />
+          {busy && (
+            <p className="text-sm font-semibold">
+              {scanMode === "minifig" ? "Splitting pieces…" : "Saving set…"}
+            </p>
+          )}
+
+          {scanMode === "minifig" && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                {scanPreview.map((p) => (
+                  <div key={p.id} className="rounded-lg border-2 border-black p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.image_data} alt="" className="h-24 w-full object-contain" />
+                    <select
+                      className="field mt-2 text-sm"
+                      value={p.category}
+                      onChange={(e) => reassign(p.id, e.target.value)}
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <h3 className="pt-2 font-extrabold">Piece library ({pieces.length})</h3>
+              <div className="grid grid-cols-4 gap-2">
+                {pieces.slice(0, 24).map((p) => (
+                  <div key={p.id} className="rounded border-2 border-black bg-white p-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.image_data} alt="" className="h-14 w-full object-contain" />
+                    <p className="truncate text-center text-[10px] font-bold capitalize">
+                      {p.category}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {tab === "sets" && (
+        <section className="mt-4 space-y-3">
+          <p className="text-sm font-semibold text-black/70">
+            Approved sets in the city. Assign an owner so everyone knows who has it.
+          </p>
+          {catalog.length === 0 && (
+            <p className="text-sm font-semibold">No sets yet — scan one from the Scan tab.</p>
+          )}
+          {catalog.map((s) => (
+            <article key={s.id} className="panel space-y-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={s.image_data}
+                alt={s.name}
+                className="max-h-40 w-full rounded-md border-2 border-black object-contain bg-[#f4efe4]"
+              />
+              <h3 className="font-extrabold">{s.name}</h3>
+              <label className="block text-xs font-bold">
+                Owner
                 <select
-                  className="field mt-2 text-sm"
-                  value={p.category}
-                  onChange={(e) => reassign(p.id, e.target.value)}
+                  className="field mt-1 text-sm"
+                  value={s.owner_id || ""}
+                  onChange={(e) => assignSetOwner(s.id, e.target.value)}
                 >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  <option value="">Unassigned</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
                     </option>
                   ))}
                 </select>
-              </div>
-            ))}
-          </div>
-          <h3 className="pt-2 font-extrabold">Library ({pieces.length})</h3>
-          <div className="grid grid-cols-4 gap-2">
-            {pieces.slice(0, 24).map((p) => (
-              <div key={p.id} className="rounded border-2 border-black bg-white p-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.image_data} alt="" className="h-14 w-full object-contain" />
-                <p className="truncate text-center text-[10px] font-bold capitalize">{p.category}</p>
-              </div>
-            ))}
-          </div>
+              </label>
+              <button
+                type="button"
+                className="text-xs font-bold text-[var(--brick-red)]"
+                onClick={() => deleteSet(s.id)}
+              >
+                Delete set
+              </button>
+            </article>
+          ))}
         </section>
       )}
 
@@ -288,7 +419,10 @@ export default function AdminPage() {
           </button>
           <ul className="space-y-2 pt-2">
             {users.map((u) => (
-              <li key={u.id} className="flex items-center justify-between border-b border-black/10 py-2">
+              <li
+                key={u.id}
+                className="flex items-center justify-between border-b border-black/10 py-2"
+              >
                 <div>
                   <p className="font-extrabold">{u.name}</p>
                   <p className="text-xs text-black/60">
@@ -325,7 +459,9 @@ export default function AdminPage() {
                   <button
                     type="button"
                     className="flex-1 rounded-md border-2 border-black bg-[var(--brick-green)] px-2 py-2 text-sm font-bold text-white"
-                    onClick={() => review(b.id, "approved", "Looks good for the city.")}
+                    onClick={() =>
+                      review(b.id, "approved", "Approved — now tracked under this owner in the city.")
+                    }
                   >
                     Approve
                   </button>
@@ -336,7 +472,7 @@ export default function AdminPage() {
                       review(
                         b.id,
                         "rejected",
-                        "Needs more realism / better scale — check the standards."
+                        "Scale or realism issue — cars must fit the roads; houses need real openings."
                       )
                     }
                   >

@@ -42,3 +42,5 @@ next-env.d.ts
 
 # Local upload staging (raw JPEGs) — not deployed as source of truth
 public/sets/uploads/
+.netlify/
+**/.netlify/
