@@ -11,6 +11,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const name = String(body.name ?? "").trim();
     const password = String(body.password ?? "");
+    const kiosk = body.kiosk === true;
+
+    // New accounts only on the city iPad (home-button family)
+    if (!kiosk) {
+      return jsonError("New accounts only on the city iPad", 403);
+    }
+
     if (name.length < 2) return jsonError("Name must be at least 2 characters");
     if (password.length < 3) return jsonError("Password must be at least 3 characters");
 

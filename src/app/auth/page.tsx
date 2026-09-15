@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isIPad9FamilyKiosk } from "@/lib/device";
 
 type Mode = "pick" | "login" | "register";
 
@@ -12,8 +13,17 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [kiosk, setKiosk] = useState(false);
+
+  useEffect(() => {
+    setKiosk(isIPad9FamilyKiosk());
+  }, []);
 
   async function submit() {
+    if (mode === "register" && !kiosk) {
+      setError("New accounts only on the city iPad");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -21,7 +31,7 @@ export default function AuthPage() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, password }),
+        body: JSON.stringify({ name, password, kiosk }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -45,7 +55,9 @@ export default function AuthPage() {
   return (
     <main className="page-wrap flex min-h-dvh flex-col justify-center py-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
       <h1 className="lego-logo text-[clamp(2.8rem,11vw,4.4rem)] leading-none">LEGOTRACK</h1>
-      <p className="soft-copy mt-4 text-center">Just your name and a password. Easy!</p>
+      <p className="soft-copy mt-4 text-center">
+        {kiosk ? "Just your name and a password. Easy!" : "Admin sign-in only"}
+      </p>
 
       {mode === "pick" && (
         <div className="mx-auto mt-12 flex w-full max-w-md flex-col gap-4">
@@ -56,9 +68,11 @@ export default function AuthPage() {
           >
             Log in
           </button>
-          <button type="button" className="lego-btn w-full" onClick={() => setMode("register")}>
-            Create account
-          </button>
+          {kiosk && (
+            <button type="button" className="lego-btn w-full" onClick={() => setMode("register")}>
+              Create account
+            </button>
+          )}
           <button
             type="button"
             className="mt-3 min-h-12 text-base font-extrabold underline"
@@ -69,10 +83,10 @@ export default function AuthPage() {
         </div>
       )}
 
-      {(mode === "login" || mode === "register") && (
+      {(mode === "login" || (mode === "register" && kiosk)) && (
         <div className="panel mx-auto mt-10 w-full max-w-md space-y-5">
           <h2 className="brand-title text-[clamp(1.7rem,5.5vw,2.3rem)]">
-            {mode === "login" ? "Log in" : "Create account"}
+            {mode === "login" ? (kiosk ? "Log in" : "Admin log in") : "Create account"}
           </h2>
           <label className="block text-base font-extrabold">
             Name

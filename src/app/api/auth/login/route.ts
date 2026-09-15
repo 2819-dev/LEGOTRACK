@@ -6,12 +6,18 @@ export async function POST(req: Request) {
     const body = await req.json();
     const name = String(body.name ?? "").trim();
     const password = String(body.password ?? "");
+    const kiosk = body.kiosk === true;
     if (!name || !password) return jsonError("Name and password required");
 
     const user = await findUserByName(name);
     if (!user) return jsonError("Wrong name or password", 401);
     const ok = await verifyPassword(password, user.password_hash);
     if (!ok) return jsonError("Wrong name or password", 401);
+
+    // Off the home-button iPad family: admin only
+    if (!kiosk && user.role !== "admin") {
+      return jsonError("Only admin can sign in from this device", 403);
+    }
 
     await createSession({ id: user.id, name: user.name, role: user.role });
     return jsonOk({ id: user.id, name: user.name, role: user.role });
