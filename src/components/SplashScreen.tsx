@@ -104,22 +104,22 @@ export function SplashScreen() {
   }, []);
 
   return (
-    <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-[max(1.75rem,env(safe-area-inset-left))] pb-[max(2.25rem,env(safe-area-inset-bottom))] pt-[max(2.75rem,env(safe-area-inset-top))]">
+    <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-[max(1.5rem,env(safe-area-inset-left))] pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[max(2.25rem,env(safe-area-inset-top))]">
       <div className="pointer-events-none absolute inset-0 bg-[#FFD500]" />
       <div className="splash-studs pointer-events-none absolute inset-0 opacity-30" />
 
-      <h1 className="lego-logo relative z-30 w-full px-2 text-center text-[clamp(3.2rem,11vw,5.75rem)] leading-[0.95]">
+      <h1 className="lego-logo relative z-30 w-full max-w-[42rem] px-2 text-center text-[clamp(3rem,12vw,5.25rem)] leading-[0.95]">
         LEGOTRACK
       </h1>
 
-      <div className="relative z-10 mt-7 flex w-full max-w-4xl flex-1 items-center justify-center sm:mt-10">
-        <div className="absolute inset-[-6%] z-0 sm:inset-[-10%]">
+      <div className="relative z-10 mt-5 flex w-full max-w-[42rem] flex-1 items-center justify-center sm:mt-7">
+        <div className="absolute inset-[-8%] z-0 sm:inset-[-12%]">
           <RayBurst />
         </div>
 
-        <div className="pointer-events-none absolute z-10 h-[min(38vw,260px)] w-[min(70vw,440px)] rounded-full bg-[#FFD500]" />
+        <div className="pointer-events-none absolute z-10 h-[min(28dvh,240px)] w-[min(78vw,420px)] rounded-full bg-[#FFD500]" />
 
-        <div className="relative z-20 h-[min(50vw,380px)] w-[min(92vw,680px)]">
+        <div className="relative z-20 h-[min(42dvh,420px)] w-full max-w-[36rem]">
           <Image
             src={OFFICIAL_SETS[current]}
             alt=""
@@ -144,7 +144,7 @@ export function SplashScreen() {
       <button
         type="button"
         onClick={() => router.push("/auth")}
-        className="lego-btn lego-btn-yellow relative z-30 mt-10 w-full max-w-md"
+        className="lego-btn lego-btn-yellow relative z-30 mt-6 w-full max-w-md sm:mt-8"
       >
         Continue
       </button>

@@ -72,28 +72,28 @@ export default function HomePage() {
         </section>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="stack">
         <Link href="/city" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Who owns what</h2>
-          <p className="soft-copy mt-2 text-[1rem]">
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Who owns what</h2>
+          <p className="soft-copy mt-2">
             Buildings, cars, and sets — and who they belong to.
           </p>
         </Link>
         <Link href="/standards" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Community rules</h2>
-          <p className="soft-copy mt-2 text-[1rem]">
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Community rules</h2>
+          <p className="soft-copy mt-2">
             Cars must fit the roads. Houses must look like houses.
           </p>
         </Link>
         <Link href="/builds" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Submit a build</h2>
-          <p className="soft-copy mt-2 text-[1rem]">
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Submit a build</h2>
+          <p className="soft-copy mt-2">
             Photo it, send it in, get it approved for the city.
           </p>
         </Link>
         <Link href="/avatar" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Avatar builder</h2>
-          <p className="soft-copy mt-2 text-[1rem]">
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Avatar builder</h2>
+          <p className="soft-copy mt-2">
             Mix real scanned hair, heads, shirts, and pants.
           </p>
         </Link>

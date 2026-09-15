@@ -41,12 +41,12 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="page-wrap flex min-h-dvh flex-col py-[max(2rem,env(safe-area-inset-top))]">
-      <h1 className="lego-logo text-[clamp(2.6rem,10vw,4.2rem)] leading-none">LEGOTRACK</h1>
+    <main className="page-wrap flex min-h-dvh flex-col justify-center py-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <h1 className="lego-logo text-[clamp(2.8rem,11vw,4.4rem)] leading-none">LEGOTRACK</h1>
       <p className="soft-copy mt-4 text-center">Just your name and a password. Easy!</p>
 
       {mode === "pick" && (
-        <div className="mx-auto mt-10 flex w-full max-w-md flex-col gap-4">
+        <div className="mx-auto mt-12 flex w-full max-w-md flex-col gap-4">
           <button
             type="button"
             className="lego-btn lego-btn-yellow w-full"
@@ -59,7 +59,7 @@ export default function AuthPage() {
           </button>
           <button
             type="button"
-            className="mt-2 text-base font-extrabold underline"
+            className="mt-3 min-h-12 text-base font-extrabold underline"
             onClick={() => router.push("/")}
           >
             Back to splash
@@ -68,8 +68,8 @@ export default function AuthPage() {
       )}
 
       {(mode === "login" || mode === "register") && (
-        <div className="panel mx-auto mt-8 w-full max-w-md space-y-5">
-          <h2 className="brand-title text-[clamp(1.6rem,5vw,2.2rem)]">
+        <div className="panel mx-auto mt-10 w-full max-w-md space-y-5">
+          <h2 className="brand-title text-[clamp(1.7rem,5.5vw,2.3rem)]">
             {mode === "login" ? "Log in" : "Create account"}
           </h2>
           <label className="block text-base font-extrabold">
@@ -106,7 +106,7 @@ export default function AuthPage() {
           </button>
           <button
             type="button"
-            className="w-full text-base font-extrabold underline"
+            className="min-h-12 w-full text-base font-extrabold underline"
             onClick={() => setMode("pick")}
           >
             Back

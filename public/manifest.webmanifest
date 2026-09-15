@@ -4,6 +4,7 @@
   "description": "Lego city avatars, standards, and build review",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#FFD500",
   "theme_color": "#FFD500",
   "icons": [
