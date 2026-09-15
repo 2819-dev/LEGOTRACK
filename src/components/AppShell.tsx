@@ -59,8 +59,8 @@ export function AppShell({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <LegoLogo
-              playful={false}
-              className="block text-left text-[clamp(1.25rem,3.8vw,1.65rem)] leading-none"
+              compact
+              className="text-left text-[clamp(1.25rem,3.8vw,1.65rem)] leading-none"
             />
             <p className="mt-1 text-sm font-extrabold text-black/65">Hi, {user.name}</p>
           </div>

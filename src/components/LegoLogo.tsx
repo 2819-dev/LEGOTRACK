@@ -1,20 +1,24 @@
 export function LegoLogo({
   className = "",
-  text = "LEGOTRACK",
-  playful = true,
+  compact = false,
 }: {
   className?: string;
-  text?: string;
-  playful?: boolean;
+  /** Quieter header treatment — same lockup, smaller motion */
+  compact?: boolean;
 }) {
   return (
     <span
-      className={`lego-logo ${playful ? "logo-play" : "logo-colors"} ${className}`.trim()}
-      aria-label={text}
+      className={`lego-mark ${compact ? "lego-mark-compact" : ""} ${className}`.trim()}
+      aria-label="LEGOTRACK"
     >
-      {text.split("").map((ch, i) => (
-        <span key={`${ch}-${i}`}>{ch}</span>
-      ))}
+      <span className="lego-mark-lego">LEGO</span>
+      <span className="lego-mark-stud" aria-hidden>
+        <span className="lego-mark-stud-shine" />
+      </span>
+      <span className="lego-mark-track">
+        <span className="lego-mark-rails" aria-hidden />
+        TRACK
+      </span>
     </span>
   );
 }
