@@ -33,12 +33,12 @@ const RAY_COLORS = [
 
 function RayBurst() {
   const cx = 50;
-  const cy = 48;
-  const innerR = 6;
-  const outerR = 95;
+  const cy = 50;
+  const innerR = 7;
+  const outerR = 92;
   const count = RAY_COLORS.length;
-  const halfInnerDeg = 2.2;
-  const halfOuterDeg = 10.5;
+  const halfInnerDeg = 2;
+  const halfOuterDeg = 9.5;
   const toRad = (d: number) => (d * Math.PI) / 180;
   const pt = (deg: number, r: number) => {
     const a = toRad(deg - 90);
@@ -64,9 +64,9 @@ function RayBurst() {
             points={`${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`}
             fill={color}
             stroke="#111"
-            strokeWidth="0.3"
+            strokeWidth="0.28"
             strokeLinejoin="round"
-            opacity={color === "#FFFFFF" ? 0.95 : 1}
+            opacity={color === "#FFFFFF" ? 0.92 : 1}
           />
         );
       })}
@@ -104,32 +104,27 @@ export function SplashScreen() {
   }, []);
 
   return (
-    <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-[max(1.25rem,env(safe-area-inset-left))] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.75rem,env(safe-area-inset-top))]">
-      {/* Full-bleed rays — edge to edge, above title and behind Continue */}
+    <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-[max(1.5rem,env(safe-area-inset-left))] pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
       <div className="pointer-events-none absolute inset-0 z-0 bg-[#FFD500]" />
       <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
-        <div className="absolute inset-[-20%] sm:inset-[-12%]">
+        <div className="absolute inset-[-18%]">
           <RayBurst />
         </div>
       </div>
-      <div className="splash-studs pointer-events-none absolute inset-0 z-[2] opacity-20" />
 
-      <h1 className="splash-title relative z-30 mt-1 w-full max-w-[42rem] px-1 text-center text-[clamp(3.4rem,13vw,5.75rem)] leading-[0.9]">
-        LEGO
-        <span className="block">TRACK</span>
+      <h1 className="splash-title relative z-30 w-full max-w-[40rem] text-center text-[clamp(2.8rem,11vw,4.75rem)] leading-none">
+        LEGOTRACK
       </h1>
 
-      <div className="relative z-20 mt-3 flex w-full max-w-[42rem] flex-1 items-center justify-center sm:mt-4">
-        <div className="pointer-events-none absolute z-10 h-[min(30dvh,260px)] w-[min(82vw,460px)] rounded-full bg-[#FFD500]/80 blur-[1px]" />
-
-        <div className="relative z-20 h-[min(44dvh,440px)] w-full max-w-[36rem]">
+      <div className="relative z-20 mt-6 flex w-full max-w-[40rem] flex-1 items-center justify-center">
+        <div className="relative h-[min(46dvh,420px)] w-full">
           <Image
             src={OFFICIAL_SETS[current]}
             alt=""
             width={1100}
             height={900}
             priority
-            className="absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.32)]"
+            className="absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.22)]"
           />
           <Image
             src={OFFICIAL_SETS[next]}
@@ -137,7 +132,7 @@ export function SplashScreen() {
             width={1100}
             height={900}
             priority
-            className={`absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.32)] transition-opacity duration-700 ease-in-out ${
+            className={`absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.22)] transition-opacity duration-700 ease-in-out ${
               crossfading ? "opacity-100" : "opacity-0"
             }`}
           />
@@ -147,7 +142,7 @@ export function SplashScreen() {
       <button
         type="button"
         onClick={() => router.push("/auth")}
-        className="lego-btn lego-btn-yellow relative z-30 mt-4 w-full max-w-md sm:mt-5"
+        className="lego-btn lego-btn-yellow relative z-30 mt-5 w-full max-w-sm"
       >
         Continue
       </button>
