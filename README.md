@@ -33,34 +33,18 @@ Change this after first login in production.
 5. **Build review** — players submit photos; admin approves/rejects
 6. **Admin panel** — add users, scan minifigs (auto-split into separate pieces), edit rules, review builds
 
-## Deploy on Netlify
+## Live site
 
-This cloud agent **cannot** open an interactive Netlify OAuth link. Do one of:
+**https://legotrack-449.netlify.app**
 
-### Option A — Personal access token (works here)
-
-1. Open [Netlify personal access tokens](https://app.netlify.com/user/applications#personal-access-tokens)
-2. Create a token named `LEGOTRACK agent`
-3. Paste it back in chat (or set `NETLIFY_AUTH_TOKEN` in the environment)
-
-Then we can run:
+Production deploys go from **`main`**. Redeploy:
 
 ```bash
+git checkout main && git pull
 npx netlify deploy --prod --build
 ```
 
-Set site env vars in Netlify:
-
-- `DATABASE_URL` — Neon connection string
-- `AUTH_SECRET` — long random string
-
-### Option B — Cursor Desktop Netlify MCP
-
-In Cursor Desktop → Settings → MCP → authenticate **Netlify**, then re-run the agent so it can deploy with your account.
-
-### Option C — GitHub ↔ Netlify UI
-
-Connect the `LEGOTRACK` repo in the Netlify dashboard; builds use `netlify.toml` automatically.
+Netlify env vars already set: `DATABASE_URL`, `AUTH_SECRET`, `NEXT_PUBLIC_APP_NAME`.
 
 ## Neon project
 
