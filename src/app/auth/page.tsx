@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isIPad9FamilyKiosk } from "@/lib/device";
+import { LegoLogo } from "@/components/LegoLogo";
 
 type Mode = "pick" | "login" | "register";
 
@@ -62,7 +63,9 @@ export default function AuthPage() {
 
   return (
     <main className="page-wrap flex min-h-dvh flex-col justify-center py-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
-      <h1 className="lego-logo text-[clamp(2.8rem,11vw,4.4rem)] leading-none">LEGOTRACK</h1>
+      <h1 className="text-center">
+        <LegoLogo className="text-[clamp(2.8rem,11vw,4.4rem)] leading-none" />
+      </h1>
       <p className="soft-copy mt-4 text-center">
         {openPlayerLogin ? "Just your name and a password. Easy!" : "Admin sign-in only"}
       </p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isAdminAllowedPath, isIPad9FamilyKiosk } from "@/lib/device";
+import { LegoLogo } from "@/components/LegoLogo";
 
 export function RotateKioskGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
@@ -47,9 +48,7 @@ export function RotateKioskGate({ children }: { children: React.ReactNode }) {
           >
             <span className="brand-title text-3xl leading-none sm:text-4xl">↪</span>
           </div>
-          <p className="lego-logo relative z-10 text-[clamp(2.2rem,8vw,4rem)] leading-none">
-            LEGOTRACK
-          </p>
+          <LegoLogo className="relative z-10 text-[clamp(2.2rem,8vw,4rem)] leading-none" />
           <h1 className="brand-title relative z-10 max-w-xl text-[clamp(1.6rem,5vw,2.6rem)]">
             Rotate the kiosk
           </h1>

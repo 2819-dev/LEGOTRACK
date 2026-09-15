@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { LegoLogo } from "@/components/LegoLogo";
 
 const OFFICIAL_SETS: string[] = [
   "/sets/official/set-01.png",
@@ -112,8 +113,8 @@ export function SplashScreen() {
         </div>
       </div>
 
-      <h1 className="splash-title relative z-30 w-full max-w-[40rem] text-center text-[clamp(2.8rem,11vw,4.75rem)] leading-none">
-        LEGOTRACK
+      <h1 className="relative z-30 w-full max-w-[40rem] text-center">
+        <LegoLogo className="splash-title text-[clamp(2.8rem,11vw,4.75rem)] leading-none" />
       </h1>
 
       <div className="relative z-20 mt-6 flex w-full max-w-[40rem] flex-1 items-center justify-center">
