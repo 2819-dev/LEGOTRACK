@@ -23,6 +23,8 @@ type OwnerGroup = {
 export default function CityPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
   const [owners, setOwners] = useState<OwnerGroup[]>([]);
   const [filter, setFilter] = useState<"all" | "building" | "vehicle" | "set" | "other">("all");
 
@@ -31,7 +33,11 @@ export default function CityPage() {
       .then((r) => r.json())
       .then((me) => {
         if (!me.user) router.replace("/auth");
-        else setUser(me.user);
+        else {
+          setUser(me.user);
+          setIsAdmin(Boolean(me.isAdmin));
+          setActingAs(me.actingAs || null);
+        }
       });
     fetch("/api/city")
       .then((r) => r.json())
@@ -48,7 +54,7 @@ export default function CityPage() {
     .filter((o) => o.items.length > 0);
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} isAdmin={isAdmin} actingAs={actingAs}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Who owns what</h1>
         <p className="soft-copy mt-3">

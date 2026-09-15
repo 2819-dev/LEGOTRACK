@@ -14,9 +14,13 @@ const links = [
 export function AppShell({
   children,
   user,
+  isAdmin = false,
+  actingAs = null,
 }: {
   children: React.ReactNode;
   user: { name: string; role: string };
+  isAdmin?: boolean;
+  actingAs?: { name: string } | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -26,8 +30,31 @@ export function AppShell({
     router.push("/");
   }
 
+  async function stopActingAs() {
+    await fetch("/api/admin/act-as", { method: "DELETE" });
+    router.refresh();
+    window.location.href = "/admin";
+  }
+
   return (
     <div className="page-wrap flex min-h-dvh flex-col pt-[max(0.65rem,env(safe-area-inset-top))] pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
+      {actingAs && (
+        <div className="mb-3 rounded-[1.1rem] border-4 border-black bg-[#7dd3fc] px-4 py-3 shadow-[5px_5px_0_#111]">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-extrabold leading-snug sm:text-base">
+              Using as <span className="uppercase">{actingAs.name}</span> — builds & avatar count as them
+            </p>
+            <button
+              type="button"
+              onClick={stopActingAs}
+              className="chip min-h-11 shrink-0 bg-white px-3 text-sm"
+            >
+              Stop
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="sticky top-0 z-20 mt-1 rounded-[1.2rem] border-4 border-black bg-[var(--brick-yellow)] px-4 py-3.5 shadow-[6px_6px_0_#111] sm:px-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -39,7 +66,7 @@ export function AppShell({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {user.role === "admin" && (
+            {isAdmin && (
               <Link href="/admin" className="chip min-h-11 bg-white px-3.5 text-sm">
                 Admin
               </Link>

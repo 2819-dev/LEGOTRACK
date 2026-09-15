@@ -18,6 +18,8 @@ type Build = {
 export default function BuildsPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
   const [builds, setBuilds] = useState<Build[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -35,7 +37,11 @@ export default function BuildsPage() {
       .then((r) => r.json())
       .then((me) => {
         if (!me.user) router.replace("/auth");
-        else setUser(me.user);
+        else {
+          setUser(me.user);
+          setIsAdmin(Boolean(me.isAdmin));
+          setActingAs(me.actingAs || null);
+        }
       });
     refresh();
   }, [router]);
@@ -69,7 +75,7 @@ export default function BuildsPage() {
   if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} isAdmin={isAdmin} actingAs={actingAs}>
       <section className="panel space-y-4">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Submit a build</h1>
         <p className="soft-copy">

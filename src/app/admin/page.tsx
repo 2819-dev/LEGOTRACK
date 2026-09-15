@@ -50,7 +50,8 @@ const CATEGORIES = ["hair", "head", "shirt", "pants"] as const;
 
 export default function AdminPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id?: string; name: string; role: string } | null>(null);
+  const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
   const [tab, setTab] = useState<"scan" | "sets" | "users" | "reviews" | "rules">("scan");
   const [scanMode, setScanMode] = useState<"minifig" | "set">("minifig");
   const [setName, setSetName] = useState("");
@@ -66,6 +67,9 @@ export default function AdminPage() {
   const [newName, setNewName] = useState("");
   const [newPass, setNewPass] = useState("");
   const [newRole, setNewRole] = useState<"player" | "admin">("player");
+  const [editDrafts, setEditDrafts] = useState<
+    Record<string, { name: string; role: string; password: string }>
+  >({});
 
   const [ruleTitle, setRuleTitle] = useState("");
   const [ruleBody, setRuleBody] = useState("");
@@ -74,16 +78,32 @@ export default function AdminPage() {
   async function loadAll() {
     const [u, b, s, p, c] = await Promise.all([
       fetch("/api/admin/users").then((r) => r.json()),
-      fetch("/api/builds").then((r) => r.json()),
+      fetch("/api/builds?all=1").then((r) => r.json()),
       fetch("/api/standards").then((r) => r.json()),
       fetch("/api/avatar/pieces").then((r) => r.json()),
       fetch("/api/catalog").then((r) => r.json()),
     ]);
-    setUsers(u.users || []);
+    const list = (u.users || []) as UserRow[];
+    setUsers(list);
     setBuilds(b.builds || []);
     setStandards(s.standards || []);
     setPieces(p.pieces || []);
     setCatalog(c.sets || []);
+    setEditDrafts((prev) => {
+      const next = { ...prev };
+      for (const person of list) {
+        if (!next[person.id]) {
+          next[person.id] = { name: person.name, role: person.role, password: "" };
+        } else {
+          next[person.id] = {
+            ...next[person.id],
+            name: next[person.id].name || person.name,
+            role: next[person.id].role || person.role,
+          };
+        }
+      }
+      return next;
+    });
   }
 
   useEffect(() => {
@@ -94,11 +114,12 @@ export default function AdminPage() {
           router.replace("/auth");
           return;
         }
-        if (me.user.role !== "admin") {
+        if (!me.isAdmin) {
           router.replace("/home");
           return;
         }
-        setUser(me.user);
+        setUser(me.realUser || me.user);
+        setActingAs(me.actingAs || null);
         loadAll();
       });
   }, [router]);
@@ -184,6 +205,79 @@ export default function AdminPage() {
     loadAll();
   }
 
+  function draft(id: string) {
+    return editDrafts[id] || { name: "", role: "player", password: "" };
+  }
+
+  function setDraft(id: string, patch: Partial<{ name: string; role: string; password: string }>) {
+    setEditDrafts((prev) => ({
+      ...prev,
+      [id]: { ...draft(id), ...patch },
+    }));
+  }
+
+  async function saveUser(id: string) {
+    setBusy(true);
+    setMsg("");
+    const d = draft(id);
+    const res = await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        name: d.name,
+        role: d.role,
+        password: d.password || undefined,
+      }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(data.error || "Could not save user");
+      return;
+    }
+    setEditDrafts((prev) => ({
+      ...prev,
+      [id]: { name: data.user.name, role: data.user.role, password: "" },
+    }));
+    setMsg(`Saved ${data.user.name}`);
+    if (user?.id === id) setUser({ ...user, name: data.user.name, role: data.user.role });
+    loadAll();
+  }
+
+  async function deleteUser(id: string, name: string) {
+    if (!window.confirm(`Delete ${name}? Their builds and ownership will be removed.`)) return;
+    setBusy(true);
+    setMsg("");
+    const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(data.error || "Could not delete user");
+      return;
+    }
+    setMsg(`Deleted ${name}`);
+    loadAll();
+  }
+
+  async function actAsUser(id: string, name: string) {
+    setBusy(true);
+    setMsg("");
+    const res = await fetch("/api/admin/act-as", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: id }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(data.error || "Could not switch");
+      return;
+    }
+    setMsg(`Now using as ${name}`);
+    router.push("/home");
+  }
+
   async function review(id: string, status: "approved" | "rejected", admin_notes: string) {
     await fetch("/api/builds", {
       method: "PATCH",
@@ -220,11 +314,11 @@ export default function AdminPage() {
   if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} isAdmin actingAs={actingAs}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Admin panel</h1>
         <p className="soft-copy mt-3">
-          Scan minifigs and approved sets, assign owners, review builds, edit rules.
+          Scan minifigs and sets, manage people, rename anyone, use the app as them, review builds.
         </p>
       </section>
 
@@ -394,47 +488,114 @@ export default function AdminPage() {
       )}
 
       {tab === "users" && (
-        <section className="panel space-y-4">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Add person</h2>
-          <input
-            className="field"
-            placeholder="Name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
-          <input
-            className="field"
-            placeholder="Password"
-            value={newPass}
-            onChange={(e) => setNewPass(e.target.value)}
-          />
-          <select
-            className="field"
-            value={newRole}
-            onChange={(e) => setNewRole(e.target.value as "player" | "admin")}
-          >
-            <option value="player">Player</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button type="button" className="lego-btn lego-btn-yellow w-full" onClick={addUser}>
-            Add
-          </button>
-          <ul className="space-y-3 pt-2">
-            {users.map((u) => (
-              <li
-                key={u.id}
-                className="flex items-center justify-between rounded-xl border-3 border-black bg-[#fffef5] px-4 py-3"
-              >
-                <div>
-                  <p className="text-lg font-extrabold">{u.name}</p>
-                  <p className="text-sm font-bold text-black/60">
-                    {u.role}
-                    {u.avatar_complete ? " · avatar ready" : " · no avatar"}
+        <section className="stack">
+          <div className="panel space-y-4">
+            <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Add person</h2>
+            <input
+              className="field"
+              placeholder="Name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <input
+              className="field"
+              placeholder="Password"
+              value={newPass}
+              onChange={(e) => setNewPass(e.target.value)}
+            />
+            <select
+              className="field"
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value as "player" | "admin")}
+            >
+              <option value="player">Player</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button
+              type="button"
+              className="lego-btn lego-btn-yellow w-full"
+              disabled={busy}
+              onClick={addUser}
+            >
+              Add
+            </button>
+          </div>
+
+          {users.map((u) => {
+            const d = draft(u.id);
+            const isSelf = user.id === u.id;
+            return (
+              <article key={u.id} className="panel space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-extrabold text-black/55">
+                    {u.avatar_complete ? "Avatar ready" : "No avatar"}
+                    {isSelf ? " · you" : ""}
                   </p>
+                  {!isSelf && (
+                    <button
+                      type="button"
+                      className="chip min-h-11 bg-[#7dd3fc] px-3 text-sm"
+                      disabled={busy}
+                      onClick={() => actAsUser(u.id, u.name)}
+                    >
+                      Use as them
+                    </button>
+                  )}
                 </div>
-              </li>
-            ))}
-          </ul>
+                <label className="block text-base font-extrabold">
+                  Name
+                  <input
+                    className="field mt-2"
+                    value={d.name}
+                    onChange={(e) => setDraft(u.id, { name: e.target.value })}
+                  />
+                </label>
+                <label className="block text-base font-extrabold">
+                  Role
+                  <select
+                    className="field mt-2"
+                    value={d.role}
+                    onChange={(e) => setDraft(u.id, { role: e.target.value })}
+                  >
+                    <option value="player">Player</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+                <label className="block text-base font-extrabold">
+                  New password
+                  <input
+                    className="field mt-2"
+                    type="password"
+                    placeholder="Leave blank to keep"
+                    value={d.password}
+                    onChange={(e) => setDraft(u.id, { password: e.target.value })}
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    className="lego-btn lego-btn-yellow text-[clamp(0.95rem,2.2vw,1.2rem)]"
+                    disabled={busy}
+                    onClick={() => saveUser(u.id)}
+                  >
+                    Save
+                  </button>
+                  {!isSelf ? (
+                    <button
+                      type="button"
+                      className="lego-btn lego-btn-red text-[clamp(0.95rem,2.2vw,1.2rem)]"
+                      disabled={busy}
+                      onClick={() => deleteUser(u.id, u.name)}
+                    >
+                      Delete
+                    </button>
+                  ) : (
+                    <div />
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
 

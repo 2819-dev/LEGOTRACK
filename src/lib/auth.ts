@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { getSql, type UserRow } from "./db";
 
 const COOKIE = "legotrack_session";
+const ACT_AS_COOKIE = "legotrack_act_as";
 
 function secretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -16,6 +17,16 @@ export type SessionUser = {
   name: string;
   role: "admin" | "player";
 };
+
+function cookieOpts(maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge,
+  };
+}
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
@@ -37,21 +48,17 @@ export async function createSession(user: SessionUser) {
     .sign(secretKey());
 
   const jar = await cookies();
-  jar.set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  jar.set(COOKIE, token, cookieOpts(60 * 60 * 24 * 30));
+  jar.delete(ACT_AS_COOKIE);
 }
 
 export async function destroySession() {
   const jar = await cookies();
   jar.delete(COOKIE);
+  jar.delete(ACT_AS_COOKIE);
 }
 
-export async function getSession(): Promise<SessionUser | null> {
+export async function getRealSession(): Promise<SessionUser | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
@@ -67,6 +74,66 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 }
 
+async function findUserById(id: string): Promise<SessionUser | null> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT id, name, role FROM users WHERE id = ${id} LIMIT 1
+  `;
+  const row = rows[0] as { id: string; name: string; role: string } | undefined;
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    role: row.role === "admin" ? "admin" : "player",
+  };
+}
+
+/** Effective user for submissions / avatar / ownership (honors act-as). */
+export async function getSession(): Promise<SessionUser | null> {
+  const real = await getRealSession();
+  if (!real) return null;
+
+  if (real.role !== "admin") return real;
+
+  const jar = await cookies();
+  const actAsId = jar.get(ACT_AS_COOKIE)?.value;
+  if (!actAsId || actAsId === real.id) return real;
+
+  const target = await findUserById(actAsId);
+  if (!target) {
+    jar.delete(ACT_AS_COOKIE);
+    return real;
+  }
+  return target;
+}
+
+export async function getActingAs(): Promise<SessionUser | null> {
+  const real = await getRealSession();
+  if (!real || real.role !== "admin") return null;
+  const jar = await cookies();
+  const actAsId = jar.get(ACT_AS_COOKIE)?.value;
+  if (!actAsId || actAsId === real.id) return null;
+  return findUserById(actAsId);
+}
+
+export async function startActingAs(userId: string) {
+  const real = await requireAdmin();
+  if (userId === real.id) {
+    await stopActingAs();
+    return real;
+  }
+  const target = await findUserById(userId);
+  if (!target) throw new Error("NOT_FOUND");
+  const jar = await cookies();
+  jar.set(ACT_AS_COOKIE, target.id, cookieOpts(60 * 60 * 24 * 7));
+  return target;
+}
+
+export async function stopActingAs() {
+  const jar = await cookies();
+  jar.delete(ACT_AS_COOKIE);
+}
+
 export async function requireUser() {
   const user = await getSession();
   if (!user) throw new Error("UNAUTHORIZED");
@@ -74,9 +141,24 @@ export async function requireUser() {
 }
 
 export async function requireAdmin() {
-  const user = await requireUser();
+  const user = await getRealSession();
+  if (!user) throw new Error("UNAUTHORIZED");
   if (user.role !== "admin") throw new Error("FORBIDDEN");
   return user;
+}
+
+/** Refresh JWT name/role after admin edits (e.g. rename yourself). */
+export async function refreshSessionIfSelf(userId: string) {
+  const real = await getRealSession();
+  if (!real || real.id !== userId) return;
+  const fresh = await findUserById(userId);
+  if (!fresh) return;
+  const jar = await cookies();
+  const actAs = jar.get(ACT_AS_COOKIE)?.value;
+  await createSession(fresh);
+  if (actAs) {
+    jar.set(ACT_AS_COOKIE, actAs, cookieOpts(60 * 60 * 24 * 7));
+  }
 }
 
 export async function findUserByName(name: string) {

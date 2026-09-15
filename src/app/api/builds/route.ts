@@ -1,4 +1,4 @@
-import { getSession, requireAdmin } from "@/lib/auth";
+import { getRealSession, getSession, requireAdmin } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api";
 import { compressDataUrl } from "@/lib/images";
@@ -11,12 +11,14 @@ function guessKind(title: string, description: string | null): "building" | "veh
   return "other";
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const real = await getRealSession();
   const session = await getSession();
-  if (!session) return jsonError("Unauthorized", 401);
+  if (!real || !session) return jsonError("Unauthorized", 401);
   const sql = getSql();
+  const all = new URL(req.url).searchParams.get("all") === "1";
 
-  if (session.role === "admin") {
+  if (real.role === "admin" && all) {
     const rows = await sql`
       SELECT b.*, u.name AS user_name
       FROM build_submissions b

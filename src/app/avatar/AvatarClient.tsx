@@ -25,6 +25,8 @@ export default function AvatarClient() {
   const params = useSearchParams();
   const onboarding = params.get("onboarding") === "1";
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [tab, setTab] = useState<(typeof TABS)[number]>("hair");
   const [sel, setSel] = useState<Selection>({
@@ -45,6 +47,8 @@ export default function AvatarClient() {
           return;
         }
         setUser(me.user);
+        setIsAdmin(Boolean(me.isAdmin));
+        setActingAs(me.actingAs || null);
         const p = await piecesRes.json();
         setPieces(p.pieces || []);
         const a = await avatarRes.json();
@@ -91,7 +95,7 @@ export default function AvatarClient() {
   if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} isAdmin={isAdmin} actingAs={actingAs}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">
           {onboarding ? "Create your avatar" : "Avatar builder"}
