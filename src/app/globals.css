@@ -40,122 +40,31 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* Unique LEGOTRACK lockup: LEGO + stud + TRACK with rail underline */
-.lego-logo,
-.lego-mark {
+/* LEGOTRACK wordmark */
+.lego-logo {
   font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
   font-weight: 400;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: #111;
   text-align: center;
-}
-
-.lego-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.08em;
-  white-space: nowrap;
+  text-shadow: 3px 3px 0 #fff, 5px 5px 0 #111;
   line-height: 1;
-  text-shadow:
-    3px 3px 0 #fff,
-    5px 5px 0 #111;
-}
-
-.lego-mark-lego {
-  letter-spacing: 0.04em;
-}
-
-.lego-mark-stud {
-  position: relative;
-  flex: 0 0 auto;
-  width: 0.72em;
-  height: 0.72em;
-  margin: 0 0.02em;
-  border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #fff6c8 0%, #ffd500 52%, #e8b800 100%);
-  border: 0.09em solid #111;
-  box-shadow:
-    inset 0 -0.06em 0 rgba(0, 0, 0, 0.18),
-    0.06em 0.06em 0 #111;
-}
-
-.lego-mark-stud-shine {
-  position: absolute;
-  top: 16%;
-  left: 18%;
-  width: 28%;
-  height: 28%;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.lego-mark-track {
-  position: relative;
-  letter-spacing: 0.06em;
-  color: var(--brick-red);
-  padding-bottom: 0.12em;
-}
-
-.lego-mark-rails {
-  position: absolute;
-  left: 0.02em;
-  right: 0.02em;
-  bottom: 0;
-  height: 0.18em;
-  border-top: 0.055em solid #111;
-  border-bottom: 0.055em solid #111;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      #111 0 0.07em,
-      transparent 0.07em 0.22em
-    );
-  background-position: 0 50%;
-  background-size: 100% 0.045em;
-  background-repeat: no-repeat;
-  opacity: 0.9;
-  pointer-events: none;
-}
-
-.lego-mark-compact {
-  text-shadow:
-    2px 2px 0 #fff,
-    3px 3px 0 #111;
-}
-
-.lego-mark-compact .lego-mark-stud {
-  width: 0.62em;
-  height: 0.62em;
-  border-width: 0.08em;
-}
-
-.lego-mark.text-left {
-  justify-content: flex-start;
 }
 
 .splash-title {
   font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: #111;
-  text-shadow:
-    3px 3px 0 #fff,
-    6px 6px 0 #111;
-  animation: splash-pop 750ms cubic-bezier(0.34, 1.45, 0.64, 1) both;
-}
-
-.splash-title.lego-mark {
-  text-shadow:
-    3px 3px 0 #fff,
-    6px 6px 0 #111;
+  text-shadow: 3px 3px 0 #fff, 6px 6px 0 #111;
+  animation: splash-pop 700ms cubic-bezier(0.34, 1.35, 0.64, 1) both;
 }
 
 @keyframes splash-pop {
   0% {
-    transform: translateY(14px) scale(0.92);
+    transform: translateY(12px) scale(0.94);
     opacity: 0;
   }
   100% {
