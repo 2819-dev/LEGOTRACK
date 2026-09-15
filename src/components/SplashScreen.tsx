@@ -12,7 +12,15 @@ import Image from "next/image";
  * Then add their paths to OFFICIAL_SETS below (or ask me after you upload).
  */
 const OFFICIAL_SETS: string[] = [
-  // e.g. "/sets/official/city-fire-station.png",
+  "/sets/official/set-01.png",
+  "/sets/official/set-02.png",
+  "/sets/official/set-03.png",
+  "/sets/official/set-04.png",
+  "/sets/official/set-05.png",
+  "/sets/official/set-06.png",
+  "/sets/official/set-07.png",
+  "/sets/official/set-08.png",
+  "/sets/official/set-09.png",
 ];
 
 /** Classic LEGO primaries — playful packaging energy */
