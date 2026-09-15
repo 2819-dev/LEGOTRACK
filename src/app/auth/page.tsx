@@ -14,13 +14,21 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [kiosk, setKiosk] = useState(false);
+  const [gateOn, setGateOn] = useState(false);
 
   useEffect(() => {
     setKiosk(isIPad9FamilyKiosk());
+    fetch("/api/settings/access-gate", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setGateOn(Boolean(d.accessGateEnabled)))
+      .catch(() => setGateOn(false));
   }, []);
 
+  const openSignup = !gateOn || kiosk;
+  const openPlayerLogin = !gateOn || kiosk;
+
   async function submit() {
-    if (mode === "register" && !kiosk) {
+    if (mode === "register" && !openSignup) {
       setError("New accounts only on the city iPad");
       return;
     }
@@ -56,7 +64,7 @@ export default function AuthPage() {
     <main className="page-wrap flex min-h-dvh flex-col justify-center py-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
       <h1 className="lego-logo text-[clamp(2.8rem,11vw,4.4rem)] leading-none">LEGOTRACK</h1>
       <p className="soft-copy mt-4 text-center">
-        {kiosk ? "Just your name and a password. Easy!" : "Admin sign-in only"}
+        {openPlayerLogin ? "Just your name and a password. Easy!" : "Admin sign-in only"}
       </p>
 
       {mode === "pick" && (
@@ -68,7 +76,7 @@ export default function AuthPage() {
           >
             Log in
           </button>
-          {kiosk && (
+          {openSignup && (
             <button type="button" className="lego-btn w-full" onClick={() => setMode("register")}>
               Create account
             </button>
@@ -83,10 +91,14 @@ export default function AuthPage() {
         </div>
       )}
 
-      {(mode === "login" || (mode === "register" && kiosk)) && (
+      {(mode === "login" || (mode === "register" && openSignup)) && (
         <div className="panel mx-auto mt-10 w-full max-w-md space-y-5">
           <h2 className="brand-title text-[clamp(1.7rem,5.5vw,2.3rem)]">
-            {mode === "login" ? (kiosk ? "Log in" : "Admin log in") : "Create account"}
+            {mode === "login"
+              ? openPlayerLogin
+                ? "Log in"
+                : "Admin log in"
+              : "Create account"}
           </h2>
           <label className="block text-base font-extrabold">
             Name

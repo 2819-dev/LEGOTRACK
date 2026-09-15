@@ -1,4 +1,5 @@
 import { createSession, findUserByName, verifyPassword } from "@/lib/auth";
+import { isAccessGateEnabled } from "@/lib/settings";
 import { jsonError, jsonOk } from "@/lib/api";
 
 export async function POST(req: Request) {
@@ -14,8 +15,9 @@ export async function POST(req: Request) {
     const ok = await verifyPassword(password, user.password_hash);
     if (!ok) return jsonError("Wrong name or password", 401);
 
-    // Off the home-button iPad family: admin only
-    if (!kiosk && user.role !== "admin") {
+    const gateOn = await isAccessGateEnabled();
+    // When Access Denied gate is on, only kiosk players or any admin may sign in
+    if (gateOn && !kiosk && user.role !== "admin") {
       return jsonError("Only admin can sign in from this device", 403);
     }
 

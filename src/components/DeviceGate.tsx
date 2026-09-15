@@ -15,16 +15,38 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<Mode>("checking");
 
   useEffect(() => {
-    const kiosk = isIPad9FamilyKiosk();
-    if (kiosk) {
-      setMode("ok");
-      return;
+    let cancelled = false;
+
+    async function resolve() {
+      // Admin auth paths always reachable so the toggle / login still works off-kiosk
+      if (isAdminAllowedPath(pathname)) {
+        if (!cancelled) setMode("admin-phone");
+        return;
+      }
+
+      if (isIPad9FamilyKiosk()) {
+        if (!cancelled) setMode("ok");
+        return;
+      }
+
+      let gateOn = false;
+      try {
+        const res = await fetch("/api/settings/access-gate", { cache: "no-store" });
+        const data = await res.json();
+        gateOn = Boolean(data.accessGateEnabled);
+      } catch {
+        // If settings fail, stay open so phones/iPhones aren't locked out accidentally
+        gateOn = false;
+      }
+
+      if (cancelled) return;
+      setMode(gateOn ? "denied" : "ok");
     }
-    if (isAdminAllowedPath(pathname)) {
-      setMode("admin-phone");
-      return;
-    }
-    setMode("denied");
+
+    resolve();
+    return () => {
+      cancelled = true;
+    };
   }, [pathname]);
 
   if (mode === "checking") {

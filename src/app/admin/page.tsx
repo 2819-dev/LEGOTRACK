@@ -75,14 +75,17 @@ export default function AdminPage() {
   const [ruleTitle, setRuleTitle] = useState("");
   const [ruleBody, setRuleBody] = useState("");
   const [ruleException, setRuleException] = useState(false);
+  const [accessGateEnabled, setAccessGateEnabled] = useState(false);
+  const [gateBusy, setGateBusy] = useState(false);
 
   async function loadAll() {
-    const [u, b, s, p, c] = await Promise.all([
+    const [u, b, s, p, c, gate] = await Promise.all([
       fetch("/api/admin/users").then((r) => r.json()),
       fetch("/api/builds?all=1").then((r) => r.json()),
       fetch("/api/standards").then((r) => r.json()),
       fetch("/api/avatar/pieces").then((r) => r.json()),
       fetch("/api/catalog").then((r) => r.json()),
+      fetch("/api/settings/access-gate", { cache: "no-store" }).then((r) => r.json()),
     ]);
     const list = (u.users || []) as UserRow[];
     setUsers(list);
@@ -90,6 +93,7 @@ export default function AdminPage() {
     setStandards(s.standards || []);
     setPieces(p.pieces || []);
     setCatalog(c.sets || []);
+    setAccessGateEnabled(Boolean(gate.accessGateEnabled));
     setEditDrafts((prev) => {
       const next = { ...prev };
       for (const person of list) {
@@ -327,6 +331,32 @@ export default function AdminPage() {
     loadAll();
   }
 
+  async function toggleAccessGate() {
+    const next = !accessGateEnabled;
+    setGateBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/settings/access-gate", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessGateEnabled: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMsg(data.error || "Could not update Access Denied");
+        return;
+      }
+      setAccessGateEnabled(Boolean(data.accessGateEnabled));
+      setMsg(
+        data.accessGateEnabled
+          ? "Access Denied is ON — phones and iPhones see the block page."
+          : "Access Denied is OFF — phones and iPhones can use the app."
+      );
+    } finally {
+      setGateBusy(false);
+    }
+  }
+
   if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
@@ -336,6 +366,27 @@ export default function AdminPage() {
         <p className="soft-copy mt-3">
           Scan minifigs and sets, manage people, rename anyone, use the app as them, review builds.
         </p>
+      </section>
+
+      <section className="panel flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="brand-title text-[clamp(1.2rem,3.2vw,1.5rem)]">Access Denied page</h2>
+          <p className="soft-copy mt-1.5 text-[0.95rem]">
+            {accessGateEnabled
+              ? "On — only the kiosk iPad (and admin login) can get in."
+              : "Off — phones and iPhones can go on for now."}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={gateBusy}
+          onClick={toggleAccessGate}
+          className={`min-h-[3.25rem] shrink-0 rounded-xl border-4 border-black px-5 text-base font-extrabold touch-manipulation ${
+            accessGateEnabled ? "bg-[var(--brick-red)] text-white" : "bg-[var(--brick-yellow)]"
+          } ${gateBusy ? "opacity-50" : ""}`}
+        >
+          {gateBusy ? "Saving…" : accessGateEnabled ? "Turn OFF" : "Turn ON"}
+        </button>
       </section>
 
       <div className="flex gap-2.5 overflow-x-auto pb-1">

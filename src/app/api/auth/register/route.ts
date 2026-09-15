@@ -4,6 +4,7 @@ import {
   hashPassword,
 } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { isAccessGateEnabled } from "@/lib/settings";
 import { jsonError, jsonOk } from "@/lib/api";
 
 export async function POST(req: Request) {
@@ -12,9 +13,10 @@ export async function POST(req: Request) {
     const name = String(body.name ?? "").trim();
     const password = String(body.password ?? "");
     const kiosk = body.kiosk === true;
+    const gateOn = await isAccessGateEnabled();
 
-    // New accounts only on the city iPad (home-button family)
-    if (!kiosk) {
+    // With gate on: new accounts only on the city iPad. Gate off: open signup.
+    if (gateOn && !kiosk) {
       return jsonError("New accounts only on the city iPad", 403);
     }
 
