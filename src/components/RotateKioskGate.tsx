@@ -1,11 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { isAdminAllowedPath, isIPad9FamilyKiosk } from "@/lib/device";
 
 export function RotateKioskGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() || "/";
   const [landscape, setLandscape] = useState(false);
+  const [enforce, setEnforce] = useState(false);
 
   useEffect(() => {
+    // Only enforce rotate-to-portrait on the real iPad kiosk — not admin phones.
+    setEnforce(isIPad9FamilyKiosk() && !isAdminAllowedPath(pathname));
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!enforce) {
+      setLandscape(false);
+      return;
+    }
     const mq = window.matchMedia("(orientation: landscape)");
     const update = () => setLandscape(mq.matches);
     update();
@@ -15,12 +28,12 @@ export function RotateKioskGate({ children }: { children: React.ReactNode }) {
       mq.removeEventListener("change", update);
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [enforce]);
 
   return (
     <>
       {children}
-      {landscape && (
+      {landscape && enforce && (
         <div
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-5 bg-[#FFD500] px-8 text-center"
           role="dialog"
@@ -41,7 +54,7 @@ export function RotateKioskGate({ children }: { children: React.ReactNode }) {
             Rotate the kiosk
           </h1>
           <p className="soft-copy relative z-10 max-w-md text-[clamp(1.1rem,3vw,1.35rem)]">
-            This app works best upright. Turn the iPad to portrait to keep playing.
+            This app works upright on the iPad. Turn it to portrait to keep playing.
           </p>
         </div>
       )}

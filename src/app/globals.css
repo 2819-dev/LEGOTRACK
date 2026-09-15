@@ -271,3 +271,20 @@ textarea.field {
     --touch: 3.55rem;
   }
 }
+
+/* Phone admin: tighter chrome, still finger-friendly */
+.admin-phone .page-wrap {
+  max-width: 40rem;
+  --pad: 1rem;
+  --touch: 3.1rem;
+}
+
+.admin-phone .lego-btn {
+  font-size: 1.05rem;
+  min-height: 3.1rem;
+}
+
+.admin-phone header.sticky {
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}

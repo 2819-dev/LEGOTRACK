@@ -13,7 +13,7 @@ export async function GET() {
     await requireAdmin();
     const sql = getSql();
     const users = await sql`
-      SELECT u.id, u.name, u.role, u.created_at,
+      SELECT u.id, u.name, u.role, u.job, u.created_at,
         (a.hair_id IS NOT NULL AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
       FROM users u
       LEFT JOIN avatars a ON a.user_id = u.id
@@ -69,13 +69,18 @@ export async function PATCH(req: Request) {
     const existing = await sql`SELECT id, name, role FROM users WHERE id = ${id} LIMIT 1`;
     if (!existing[0]) return jsonError("User not found", 404);
 
-    const updates: { name?: string; role?: string; password_hash?: string } = {};
+    const updates: { name?: string; role?: string; password_hash?: string; job?: string | null } = {};
 
     if (body.name != null) {
       const name = String(body.name).trim();
       if (!name) return jsonError("Name cannot be empty");
       if (name.length > 40) return jsonError("Name too long");
       updates.name = name;
+    }
+
+    if (body.job !== undefined) {
+      const job = body.job == null ? null : String(body.job).trim();
+      updates.job = job || null;
     }
 
     if (body.role != null) {
@@ -92,7 +97,7 @@ export async function PATCH(req: Request) {
       updates.password_hash = await hashPassword(password);
     }
 
-    if (!updates.name && !updates.role && !updates.password_hash) {
+    if (!updates.name && updates.job === undefined && !updates.role && !updates.password_hash) {
       return jsonError("Nothing to update");
     }
 
@@ -102,6 +107,9 @@ export async function PATCH(req: Request) {
       } catch {
         return jsonError("That name is already taken", 400);
       }
+    }
+    if (updates.job !== undefined) {
+      await sql`UPDATE users SET job = ${updates.job} WHERE id = ${id}`;
     }
     if (updates.role) {
       await sql`UPDATE users SET role = ${updates.role} WHERE id = ${id}`;
@@ -113,7 +121,7 @@ export async function PATCH(req: Request) {
     await refreshSessionIfSelf(id);
 
     const rows = await sql`
-      SELECT u.id, u.name, u.role, u.created_at,
+      SELECT u.id, u.name, u.role, u.job, u.created_at,
         (a.hair_id IS NOT NULL AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
       FROM users u
       LEFT JOIN avatars a ON a.user_id = u.id

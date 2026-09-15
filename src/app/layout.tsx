@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bowlby_One_SC, Nunito } from "next/font/google";
+import { DeviceGate } from "@/components/DeviceGate";
 import { RotateKioskGate } from "@/components/RotateKioskGate";
 import "./globals.css";
 
@@ -51,7 +52,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${brick.variable} ${body.variable} antialiased`}>
-        <RotateKioskGate>{children}</RotateKioskGate>
+        <DeviceGate>
+          <RotateKioskGate>{children}</RotateKioskGate>
+        </DeviceGate>
       </body>
     </html>
   );

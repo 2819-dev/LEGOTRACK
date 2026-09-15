@@ -8,6 +8,7 @@ type UserRow = {
   id: string;
   name: string;
   role: string;
+  job: string | null;
   created_at: string;
   avatar_complete: boolean;
 };
@@ -68,7 +69,7 @@ export default function AdminPage() {
   const [newPass, setNewPass] = useState("");
   const [newRole, setNewRole] = useState<"player" | "admin">("player");
   const [editDrafts, setEditDrafts] = useState<
-    Record<string, { name: string; role: string; password: string }>
+    Record<string, { name: string; role: string; password: string; job: string }>
   >({});
 
   const [ruleTitle, setRuleTitle] = useState("");
@@ -93,12 +94,18 @@ export default function AdminPage() {
       const next = { ...prev };
       for (const person of list) {
         if (!next[person.id]) {
-          next[person.id] = { name: person.name, role: person.role, password: "" };
+          next[person.id] = {
+            name: person.name,
+            role: person.role,
+            password: "",
+            job: person.job || "",
+          };
         } else {
           next[person.id] = {
             ...next[person.id],
             name: next[person.id].name || person.name,
             role: next[person.id].role || person.role,
+            job: next[person.id].job ?? person.job ?? "",
           };
         }
       }
@@ -206,10 +213,13 @@ export default function AdminPage() {
   }
 
   function draft(id: string) {
-    return editDrafts[id] || { name: "", role: "player", password: "" };
+    return editDrafts[id] || { name: "", role: "player", password: "", job: "" };
   }
 
-  function setDraft(id: string, patch: Partial<{ name: string; role: string; password: string }>) {
+  function setDraft(
+    id: string,
+    patch: Partial<{ name: string; role: string; password: string; job: string }>
+  ) {
     setEditDrafts((prev) => ({
       ...prev,
       [id]: { ...draft(id), ...patch },
@@ -227,6 +237,7 @@ export default function AdminPage() {
         id,
         name: d.name,
         role: d.role,
+        job: d.job,
         password: d.password || undefined,
       }),
     });
@@ -238,7 +249,12 @@ export default function AdminPage() {
     }
     setEditDrafts((prev) => ({
       ...prev,
-      [id]: { name: data.user.name, role: data.user.role, password: "" },
+      [id]: {
+        name: data.user.name,
+        role: data.user.role,
+        job: data.user.job || "",
+        password: "",
+      },
     }));
     setMsg(`Saved ${data.user.name}`);
     if (user?.id === id) setUser({ ...user, name: data.user.name, role: data.user.role });
@@ -350,47 +366,46 @@ export default function AdminPage() {
       )}
 
       {tab === "scan" && (
-        <section className="panel space-y-4">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Scan into LEGOTRACK</h2>
+        <section className="panel space-y-5">
+          <div>
+            <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Scan</h2>
+            <p className="soft-copy mt-2 text-[1rem]">
+              Big clear photo, plain background. Minifigs split into pieces; sets go to the catalog.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setScanMode("minifig")}
-              className={`chip min-h-14 justify-center ${
-                scanMode === "minifig" ? "chip-active" : ""
+              className={`flex min-h-[4.5rem] flex-col items-center justify-center rounded-xl border-4 border-black px-2 text-center text-sm font-extrabold touch-manipulation sm:text-base ${
+                scanMode === "minifig" ? "bg-black text-white" : "bg-white"
               }`}
             >
-              Minifig pieces
+              Minifig
+              <span className="mt-1 text-[11px] font-bold opacity-70">Hair · head · shirt · pants</span>
             </button>
             <button
               type="button"
               onClick={() => setScanMode("set")}
-              className={`chip min-h-14 justify-center ${scanMode === "set" ? "chip-active" : ""}`}
+              className={`flex min-h-[4.5rem] flex-col items-center justify-center rounded-xl border-4 border-black px-2 text-center text-sm font-extrabold touch-manipulation sm:text-base ${
+                scanMode === "set" ? "bg-black text-white" : "bg-white"
+              }`}
             >
-              Approved set
+              City set
+              <span className="mt-1 text-[11px] font-bold opacity-70">Official / approved</span>
             </button>
           </div>
 
-          {scanMode === "minifig" ? (
-            <p className="soft-copy">
-              Photo a full figure or parts tray. Full characters always become separate hair / head /
-              shirt / pants pieces.
-            </p>
-          ) : (
-            <>
-              <p className="soft-copy">
-                Photo an approved Lego set for the city catalog, then assign who owns it.
-              </p>
-              <input
-                className="field"
-                placeholder="Set name (e.g. Fire Station)"
-                value={setName}
-                onChange={(e) => setSetName(e.target.value)}
-              />
-            </>
+          {scanMode === "set" && (
+            <input
+              className="field"
+              placeholder="Set name (e.g. Fire Station)"
+              value={setName}
+              onChange={(e) => setSetName(e.target.value)}
+            />
           )}
 
-          <label className={`file-btn ${busy ? "opacity-50" : ""}`}>
+          <label className={`file-btn min-h-[4.5rem] text-lg ${busy ? "opacity-50" : ""}`}>
             {busy
               ? scanMode === "minifig"
                 ? "Splitting pieces…"
@@ -407,36 +422,43 @@ export default function AdminPage() {
 
           {scanMode === "minifig" && (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {scanPreview.map((p) => (
-                  <div key={p.id} className="tile space-y-2 p-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image_data} alt="" className="h-28 w-full object-contain" />
-                    <select
-                      className="field text-base"
-                      value={p.category}
-                      onChange={(e) => reassign(p.id, e.target.value)}
-                    >
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
+              {scanPreview.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-lg font-extrabold">Just scanned — check labels</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {scanPreview.map((p) => (
+                      <div key={p.id} className="tile space-y-2 p-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.image_data} alt="" className="h-32 w-full object-contain" />
+                        <select
+                          className="field min-h-12 text-base capitalize"
+                          value={p.category}
+                          onChange={(e) => reassign(p.id, e.target.value)}
+                        >
+                          {CATEGORIES.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <h3 className="pt-2 text-lg font-extrabold">Piece library ({pieces.length})</h3>
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                {pieces.slice(0, 24).map((p) => (
-                  <div key={p.id} className="tile p-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image_data} alt="" className="h-16 w-full object-contain" />
-                    <p className="truncate text-center text-[11px] font-bold capitalize">
-                      {p.category}
-                    </p>
-                  </div>
-                ))}
+                </div>
+              )}
+              <div>
+                <h3 className="mb-3 text-lg font-extrabold">Piece library ({pieces.length})</h3>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {pieces.slice(0, 36).map((p) => (
+                    <div key={p.id} className="tile p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.image_data} alt="" className="h-20 w-full object-contain" />
+                      <p className="truncate pt-1 text-center text-xs font-bold capitalize">
+                        {p.category}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
@@ -548,6 +570,15 @@ export default function AdminPage() {
                     className="field mt-2"
                     value={d.name}
                     onChange={(e) => setDraft(u.id, { name: e.target.value })}
+                  />
+                </label>
+                <label className="block text-base font-extrabold">
+                  Job
+                  <input
+                    className="field mt-2"
+                    placeholder="Builder, mayor, road maker…"
+                    value={d.job}
+                    onChange={(e) => setDraft(u.id, { job: e.target.value })}
                   />
                 </label>
                 <label className="block text-base font-extrabold">

@@ -78,22 +78,28 @@ export default function HomePage() {
       )}
 
       <div className="stack">
-        <Link href="/city" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Who owns what</h2>
+        <Link href="/explore" className="panel block transition-transform active:translate-y-0.5">
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Explore the city</h2>
           <p className="soft-copy mt-2">
-            Buildings, cars, and sets — and who they belong to.
+            Browse every building, car, and set — see who owns it and who built it.
           </p>
         </Link>
-        <Link href="/standards" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Community rules</h2>
+        <Link href="/people" className="panel block transition-transform active:translate-y-0.5">
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Meet people</h2>
           <p className="soft-copy mt-2">
-            Cars must fit the roads. Houses must look like houses.
+            See minifigs, jobs, and what each person owns or built.
           </p>
         </Link>
         <Link href="/builds" className="panel block transition-transform active:translate-y-0.5">
           <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Submit a build</h2>
           <p className="soft-copy mt-2">
             Photo it, send it in, get it approved for the city.
+          </p>
+        </Link>
+        <Link href="/standards" className="panel block transition-transform active:translate-y-0.5">
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Community rules</h2>
+          <p className="soft-copy mt-2">
+            Cars must fit the roads. Houses must look like houses.
           </p>
         </Link>
         <Link href="/avatar" className="panel block transition-transform active:translate-y-0.5">

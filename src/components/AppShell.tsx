@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 
 const links = [
   { href: "/home", label: "Home" },
-  { href: "/city", label: "City" },
-  { href: "/avatar", label: "Me" },
-  { href: "/standards", label: "Rules" },
+  { href: "/explore", label: "Explore" },
+  { href: "/people", label: "People" },
   { href: "/builds", label: "Builds" },
+  { href: "/avatar", label: "Me" },
 ];
 
 export function AppShell({
@@ -24,6 +24,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const hidePlayerNav = pathname.startsWith("/admin");
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -37,7 +38,13 @@ export function AppShell({
   }
 
   return (
-    <div className="page-wrap flex min-h-dvh flex-col pt-[max(0.65rem,env(safe-area-inset-top))] pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
+    <div
+      className={`page-wrap flex min-h-dvh flex-col pt-[max(0.65rem,env(safe-area-inset-top))] ${
+        hidePlayerNav
+          ? "pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          : "pb-[calc(5.75rem+env(safe-area-inset-bottom))]"
+      }`}
+    >
       {actingAs && (
         <div className="mb-3 rounded-[1.1rem] border-4 border-black bg-[#7dd3fc] px-4 py-3 shadow-[5px_5px_0_#111]">
           <div className="flex items-center justify-between gap-3">
@@ -84,6 +91,7 @@ export function AppShell({
 
       <div className="stack flex-1 py-5 sm:py-6">{children}</div>
 
+      {!hidePlayerNav && (
       <nav
         className="fixed inset-x-0 bottom-0 z-30 border-t-4 border-black bg-[var(--brick-yellow)] px-2 pt-2 shadow-[0_-4px_0_#111]"
         style={{ paddingBottom: "max(0.65rem, env(safe-area-inset-bottom))" }}
@@ -105,6 +113,7 @@ export function AppShell({
           })}
         </div>
       </nav>
+      )}
     </div>
   );
 }
