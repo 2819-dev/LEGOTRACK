@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Nunito } from "next/font/google";
+import { Bungee, Nunito } from "next/font/google";
 import "./globals.css";
 
-const display = Fredoka({
-  variable: "--font-display",
+const brick = Bungee({
+  variable: "--font-brick",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: "400",
 });
 
 const body = Nunito({
@@ -16,11 +16,11 @@ const body = Nunito({
 
 export const metadata: Metadata = {
   title: "LEGOTRACK",
-  description: "Basement Lego city tracker, avatars, and community standards",
+  description: "LEGOTRACK — Lego city avatars, standards, and build review",
   appleWebApp: {
     capable: true,
     title: "LEGOTRACK",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
 };
 
@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} antialiased`}>
+      <body className={`${brick.variable} ${body.variable} antialiased`}>
         {children}
       </body>
     </html>

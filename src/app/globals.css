@@ -4,11 +4,11 @@
   --brick-red: #e3000b;
   --brick-yellow: #ffd500;
   --brick-blue: #0055bf;
-  --brick-green: #00a650;
-  --brick-orange: #ff6b00;
+  --brick-green: #00af4d;
+  --brick-orange: #ff6d00;
   --ink: #111111;
-  --paper: #f7f3ea;
-  --background: #1c1c1c;
+  --paper: #ffffff;
+  --background: #ffd500;
   --foreground: #111111;
 }
 
@@ -27,54 +27,95 @@ body {
 body {
   margin: 0;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 10% 0%, #ffd50022, transparent 35%),
-    radial-gradient(circle at 90% 10%, #e3000b18, transparent 30%),
-    linear-gradient(180deg, #f4efe4 0%, #e8e0d0 100%);
+  background: #fff;
   font-family: var(--font-body), system-ui, sans-serif;
 }
 
-.brand-title,
-.brand-title {
-  font-family: var(--font-display), Impact, sans-serif;
-  font-weight: 700;
+.lego-logo {
+  font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  -webkit-text-stroke: 3px #000;
+  paint-order: stroke fill;
+  text-shadow: 4px 4px 0 #fff;
 }
 
-.stud-grid {
-  background-image: radial-gradient(#ffffff33 2px, transparent 2.5px);
-  background-size: 18px 18px;
+.brand-title {
+  font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.splash-studs {
+  background-image: radial-gradient(#00000018 5px, transparent 6px);
+  background-size: 28px 28px;
+  background-position: 8px 8px;
+}
+
+.strip {
+  box-shadow: 1px 1px 0 #00000055;
+}
+
+.strip-from-left {
+  left: 0;
+  animation: strip-in-left 2.8s ease-in-out infinite alternate;
+}
+
+.strip-from-right {
+  right: 0;
+  animation: strip-in-right 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes strip-in-left {
+  0% {
+    transform: translateX(-28%);
+  }
+  100% {
+    transform: translateX(8%);
+  }
+}
+
+@keyframes strip-in-right {
+  0% {
+    transform: translateX(28%);
+  }
+  100% {
+    transform: translateX(-8%);
+  }
 }
 
 .lego-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 3.25rem;
-  border-radius: 0.65rem;
+  min-height: 3.35rem;
+  border-radius: 0.35rem;
   border: 4px solid #111;
   background: #fff;
   color: #111;
-  font-family: var(--font-display), Impact, sans-serif;
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  box-shadow: 0 6px 0 #111;
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 5px 0 #111;
+  transition: transform 100ms ease, box-shadow 100ms ease;
 }
 
 .lego-btn:active {
-  transform: translateY(4px);
+  transform: translateY(3px);
   box-shadow: 0 2px 0 #111;
 }
 
 .lego-btn-primary {
-  background: var(--brick-yellow);
+  background: #fff;
 }
 
 .panel {
   border: 3px solid #111;
-  border-radius: 1rem;
+  border-radius: 0.35rem;
   background: #fff;
   box-shadow: 4px 4px 0 #111;
   padding: 1rem;
@@ -83,7 +124,7 @@ body {
 .field {
   width: 100%;
   border: 3px solid #111;
-  border-radius: 0.65rem;
+  border-radius: 0.35rem;
   padding: 0.75rem 0.9rem;
   font-size: 1rem;
   background: #fff;
@@ -92,14 +133,4 @@ body {
 .field:focus {
   outline: 3px solid var(--brick-blue);
   outline-offset: 1px;
-}
-
-@keyframes color-pulse {
-  0%,
-  100% {
-    filter: hue-rotate(0deg);
-  }
-  50% {
-    filter: hue-rotate(25deg);
-  }
 }

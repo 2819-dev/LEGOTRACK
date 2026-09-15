@@ -30,7 +30,7 @@ export function AppShell({
       <header className="sticky top-0 z-20 border-b-4 border-black bg-[var(--brick-yellow)] px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="brand-title text-xl tracking-wide text-black">LEGOTRACK</p>
+            <p className="lego-logo text-[1.35rem] leading-none">LEGOTRACK</p>
             <p className="text-xs text-black/70">Hi, {user.name}</p>
           </div>
           <div className="flex items-center gap-2">

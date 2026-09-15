@@ -41,9 +41,9 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-6 py-10">
-      <h1 className="brand-title text-4xl tracking-wide">LEGOTRACK</h1>
-      <p className="mt-2 text-sm text-black/70">Sign in with just a name and password.</p>
+    <main className="mx-auto flex min-h-dvh max-w-lg flex-col bg-[#FFD500] px-6 py-10">
+      <h1 className="lego-logo text-4xl">LEGOTRACK</h1>
+      <p className="mt-3 text-sm font-bold text-black">Name + password.</p>
 
       {mode === "pick" && (
         <div className="mt-10 flex flex-col gap-4">
