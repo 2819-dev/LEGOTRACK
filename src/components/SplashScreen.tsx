@@ -45,15 +45,17 @@ export function SplashScreen() {
   }, []);
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center overflow-hidden bg-white px-5 pb-10 pt-12">
-      {/* Centered brand — matches sketch */}
+    <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-5 pb-10 pt-12">
+      {/* Fun professional yellow field + stud texture */}
+      <div className="pointer-events-none absolute inset-0 bg-[#FFD500]" />
+      <div className="splash-studs pointer-events-none absolute inset-0 opacity-35" />
+
       <h1 className="lego-logo relative z-30 w-full text-center text-[clamp(2.8rem,13vw,5rem)] leading-none">
         LEGOTRACK
       </h1>
 
       {/* Stage: rays burst from center + floating transparent set */}
       <div className="relative z-10 mt-6 flex w-full flex-1 items-center justify-center">
-        {/* Color rays — starburst from the set outward (like the sketch) */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
           {RAY_COLORS.map((color, i) => {
             const angle = (360 / RAY_COLORS.length) * i - 90;
@@ -64,17 +66,15 @@ export function SplashScreen() {
                 style={{
                   backgroundColor: color,
                   transform: `rotate(${angle}deg)`,
-                  animationDelay: `${i * 0.08}s`,
                 }}
               />
             );
           })}
         </div>
 
-        {/* Soft white disc so set stays readable over rays */}
-        <div className="pointer-events-none absolute h-[min(70vw,380px)] w-[min(70vw,380px)] rounded-full bg-white/70" />
+        {/* Soft yellow disc so the set pops over the rays */}
+        <div className="pointer-events-none absolute h-[min(70vw,380px)] w-[min(70vw,380px)] rounded-full bg-[#FFD500]/80" />
 
-        {/* Transparent-background Lego set — no frame, fades to next */}
         <div
           className={`relative z-20 flex h-[min(62vw,340px)] w-[min(62vw,340px)] items-center justify-center transition-opacity duration-500 ${
             visible ? "opacity-100" : "opacity-0"
@@ -86,7 +86,7 @@ export function SplashScreen() {
             width={680}
             height={680}
             priority
-            className="max-h-full max-w-full object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.18)]"
+            className="max-h-full max-w-full object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.22)]"
           />
         </div>
       </div>
