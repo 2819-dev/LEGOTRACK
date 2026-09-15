@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  --brick-red: #e3000b;
+  --brick-yellow: #ffd500;
+  --brick-blue: #0055bf;
+  --brick-green: #00a650;
+  --brick-orange: #ff6b00;
+  --ink: #111111;
+  --paper: #f7f3ea;
+  --background: #1c1c1c;
+  --foreground: #111111;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 10% 0%, #ffd50022, transparent 35%),
+    radial-gradient(circle at 90% 10%, #e3000b18, transparent 30%),
+    linear-gradient(180deg, #f4efe4 0%, #e8e0d0 100%);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.brand-title,
+.brand-title {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 700;
+}
+
+.stud-grid {
+  background-image: radial-gradient(#ffffff33 2px, transparent 2.5px);
+  background-size: 18px 18px;
+}
+
+.lego-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  border-radius: 0.65rem;
+  border: 4px solid #111;
+  background: #fff;
+  color: #111;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 0 #111;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.lego-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #111;
+}
+
+.lego-btn-primary {
+  background: var(--brick-yellow);
+}
+
+.panel {
+  border: 3px solid #111;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 4px 4px 0 #111;
+  padding: 1rem;
+}
+
+.field {
+  width: 100%;
+  border: 3px solid #111;
+  border-radius: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 1rem;
+  background: #fff;
+}
+
+.field:focus {
+  outline: 3px solid var(--brick-blue);
+  outline-offset: 1px;
+}
+
+@keyframes color-pulse {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(25deg);
+  }
+}
