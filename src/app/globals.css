@@ -34,11 +34,16 @@ body {
 .lego-logo {
   font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
   font-weight: 400;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  -webkit-text-stroke: 3px #000;
-  paint-order: stroke fill;
-  text-shadow: 4px 4px 0 #fff;
+  color: #000;
+  -webkit-text-stroke: 0;
+  text-shadow:
+    3px 3px 0 #fff,
+    -1px -1px 0 #fff,
+    1px -1px 0 #fff,
+    -1px 1px 0 #fff,
+    4px 4px 0 #000;
 }
 
 .brand-title {
