@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bowlby_One_SC, Nunito } from "next/font/google";
+import { RotateKioskGate } from "@/components/RotateKioskGate";
 import "./globals.css";
 
 const brick = Bowlby_One_SC({
@@ -50,7 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${brick.variable} ${body.variable} antialiased`}>
-        {children}
+        <RotateKioskGate>{children}</RotateKioskGate>
       </body>
     </html>
   );
