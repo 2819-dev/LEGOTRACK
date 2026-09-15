@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   isAdminAllowedPath,
@@ -39,10 +40,12 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
         <h1 className="brand-title text-[clamp(1.8rem,6vw,3rem)] text-[var(--brick-yellow)]">
           Access denied
         </h1>
-        <p className="max-w-md text-base font-bold leading-relaxed text-white/80 sm:text-lg">
-          This city kiosk only runs on the basement Apple iPad (9th generation,
-          home button). Admins can open the admin panel from a phone.
-        </p>
+        <Link
+          href="/auth"
+          className="absolute right-2 bottom-2 text-[9px] font-bold tracking-wide text-white/25"
+        >
+          admin
+        </Link>
       </main>
     );
   }
