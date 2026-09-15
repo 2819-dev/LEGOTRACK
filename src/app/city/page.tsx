@@ -38,7 +38,7 @@ export default function CityPage() {
       .then((d) => setOwners(d.owners || []));
   }, [router]);
 
-  if (!user) return <main className="p-8 text-center font-bold">Loading…</main>;
+  if (!user) return <main className="loading-screen">Loading…</main>;
 
   const filtered = owners
     .map((o) => ({
@@ -50,48 +50,48 @@ export default function CityPage() {
   return (
     <AppShell user={user}>
       <section className="panel">
-        <h1 className="brand-title text-3xl">Who owns what</h1>
-        <p className="mt-2 text-sm text-black/70">
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Who owns what</h1>
+        <p className="soft-copy mt-3">
           Every approved building, vehicle, and set in the city has an owner.
         </p>
       </section>
 
-      <div className="mt-3 flex gap-1 overflow-x-auto">
+      <div className="flex gap-2.5 overflow-x-auto pb-1">
         {(["all", "building", "vehicle", "set", "other"] as const).map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => setFilter(k)}
-            className={`rounded-md border-2 border-black px-3 py-1.5 text-sm font-bold capitalize ${
-              filter === k ? "bg-black text-white" : "bg-white"
-            }`}
+            className={`chip shrink-0 capitalize ${filter === k ? "chip-active" : ""}`}
           >
             {k}
           </button>
         ))}
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="stack">
         {filtered.length === 0 && (
-          <p className="text-sm font-semibold text-black/60">
+          <p className="soft-copy text-center">
             Nothing claimed yet. Approve builds or assign catalog sets to people.
           </p>
         )}
         {filtered.map((group) => (
-          <section key={group.owner_id} className="panel space-y-3">
-            <h2 className="brand-title text-xl">{group.owner_name}</h2>
-            <div className="grid grid-cols-2 gap-2">
+          <section key={group.owner_id} className="panel space-y-4">
+            <h2 className="brand-title text-[clamp(1.4rem,3.8vw,1.9rem)]">{group.owner_name}</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {group.items.map((item) => (
-                <article key={item.id} className="overflow-hidden rounded-md border-2 border-black bg-white">
+                <article key={item.id} className="tile">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={item.image_data}
                     alt={item.title}
-                    className="h-28 w-full object-cover"
+                    className="h-32 w-full object-cover sm:h-36"
                   />
-                  <div className="p-2">
-                    <p className="text-xs font-bold uppercase text-black/50">{item.kind}</p>
-                    <p className="text-sm font-extrabold leading-tight">{item.title}</p>
+                  <div className="space-y-1 p-3">
+                    <p className="text-xs font-extrabold uppercase tracking-wide text-black/50">
+                      {item.kind}
+                    </p>
+                    <p className="text-base font-extrabold leading-tight">{item.title}</p>
                   </div>
                 </article>
               ))}

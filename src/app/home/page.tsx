@@ -32,65 +32,70 @@ export default function HomePage() {
   }, [router]);
 
   if (!me?.user) {
-    return <main className="p-8 text-center font-bold">Loading…</main>;
+    return <main className="loading-screen">Loading…</main>;
   }
 
   return (
     <AppShell user={me.user}>
       <section className="panel">
-        <h1 className="brand-title text-3xl">City desk</h1>
-        <p className="mt-2 text-sm text-black/70">
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">City desk</h1>
+        <p className="soft-copy mt-3">
           Check the rules, build to scale, and keep track of what you own in the city.
         </p>
         {!me.avatarComplete && (
           <Link
             href="/avatar?onboarding=1"
-            className="mt-4 block rounded-lg border-3 border-black bg-[var(--brick-yellow)] px-3 py-3 text-center text-sm font-extrabold"
+            className="lego-btn lego-btn-yellow mt-5 w-full text-center text-[clamp(1rem,2.4vw,1.25rem)]"
           >
-            Finish your minifig avatar →
+            Finish your minifig
           </Link>
         )}
       </section>
 
       {mine.length > 0 && (
-        <section className="panel mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="brand-title text-xl">Your stuff</h2>
-            <Link href="/city" className="text-xs font-bold underline">
+        <section className="panel">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Your stuff</h2>
+            <Link href="/city" className="chip min-h-11 bg-[#dbeafe] px-3 text-sm">
               See everyone
             </Link>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-3 overflow-x-auto pb-1">
             {mine.slice(0, 8).map((item) => (
-              <div
-                key={item.id}
-                className="w-28 shrink-0 overflow-hidden rounded-md border-2 border-black bg-white"
-              >
+              <div key={item.id} className="tile w-32 shrink-0 sm:w-36">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image_data} alt="" className="h-20 w-full object-cover" />
-                <p className="truncate px-1.5 py-1 text-[11px] font-extrabold">{item.title}</p>
+                <img src={item.image_data} alt="" className="h-24 w-full object-cover sm:h-28" />
+                <p className="truncate px-2 py-2 text-sm font-extrabold">{item.title}</p>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      <div className="mt-4 grid gap-3">
-        <Link href="/city" className="panel block hover:bg-[#fffef8]">
-          <h2 className="brand-title text-xl">Who owns what</h2>
-          <p className="text-sm text-black/70">Buildings, cars, and sets — and who they belong to.</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link href="/city" className="panel block transition-transform active:translate-y-0.5">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Who owns what</h2>
+          <p className="soft-copy mt-2 text-[1rem]">
+            Buildings, cars, and sets — and who they belong to.
+          </p>
         </Link>
-        <Link href="/standards" className="panel block hover:bg-[#fffef8]">
-          <h2 className="brand-title text-xl">Community standards</h2>
-          <p className="text-sm text-black/70">Cars must fit the roads. Houses must look like houses.</p>
+        <Link href="/standards" className="panel block transition-transform active:translate-y-0.5">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Community rules</h2>
+          <p className="soft-copy mt-2 text-[1rem]">
+            Cars must fit the roads. Houses must look like houses.
+          </p>
         </Link>
-        <Link href="/builds" className="panel block hover:bg-[#fffef8]">
-          <h2 className="brand-title text-xl">Submit a build</h2>
-          <p className="text-sm text-black/70">Photo it, send it in, get it approved for the city.</p>
+        <Link href="/builds" className="panel block transition-transform active:translate-y-0.5">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Submit a build</h2>
+          <p className="soft-copy mt-2 text-[1rem]">
+            Photo it, send it in, get it approved for the city.
+          </p>
         </Link>
-        <Link href="/avatar" className="panel block hover:bg-[#fffef8]">
-          <h2 className="brand-title text-xl">Avatar builder</h2>
-          <p className="text-sm text-black/70">Mix real scanned hair, heads, shirts, and pants.</p>
+        <Link href="/avatar" className="panel block transition-transform active:translate-y-0.5">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Avatar builder</h2>
+          <p className="soft-copy mt-2 text-[1rem]">
+            Mix real scanned hair, heads, shirts, and pants.
+          </p>
         </Link>
       </div>
     </AppShell>

@@ -41,58 +41,74 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col bg-[#FFD500] px-6 py-10">
-      <h1 className="lego-logo text-4xl">LEGOTRACK</h1>
-      <p className="mt-3 text-sm font-bold text-black">Name + password.</p>
+    <main className="page-wrap flex min-h-dvh flex-col py-[max(2rem,env(safe-area-inset-top))]">
+      <h1 className="lego-logo text-[clamp(2.6rem,10vw,4.2rem)] leading-none">LEGOTRACK</h1>
+      <p className="soft-copy mt-4 text-center">Just your name and a password. Easy!</p>
 
       {mode === "pick" && (
-        <div className="mt-10 flex flex-col gap-4">
-          <button type="button" className="lego-btn lego-btn-primary" onClick={() => setMode("login")}>
+        <div className="mx-auto mt-10 flex w-full max-w-md flex-col gap-4">
+          <button
+            type="button"
+            className="lego-btn lego-btn-yellow w-full"
+            onClick={() => setMode("login")}
+          >
             Log in
           </button>
-          <button type="button" className="lego-btn" onClick={() => setMode("register")}>
+          <button type="button" className="lego-btn w-full" onClick={() => setMode("register")}>
             Create account
           </button>
-          <button type="button" className="text-sm font-semibold underline" onClick={() => router.push("/")}>
+          <button
+            type="button"
+            className="mt-2 text-base font-extrabold underline"
+            onClick={() => router.push("/")}
+          >
             Back to splash
           </button>
         </div>
       )}
 
       {(mode === "login" || mode === "register") && (
-        <div className="panel mt-8 space-y-4">
-          <h2 className="brand-title text-2xl">
+        <div className="panel mx-auto mt-8 w-full max-w-md space-y-5">
+          <h2 className="brand-title text-[clamp(1.6rem,5vw,2.2rem)]">
             {mode === "login" ? "Log in" : "Create account"}
           </h2>
-          <label className="block text-sm font-bold">
+          <label className="block text-base font-extrabold">
             Name
             <input
-              className="field mt-1"
+              className="field mt-2"
               value={name}
               autoComplete="username"
+              enterKeyHint="next"
               onChange={(e) => setName(e.target.value)}
             />
           </label>
-          <label className="block text-sm font-bold">
+          <label className="block text-base font-extrabold">
             Password
             <input
-              className="field mt-1"
+              className="field mt-2"
               type="password"
               value={password}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
+              enterKeyHint="go"
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
-          {error && <p className="text-sm font-semibold text-[var(--brick-red)]">{error}</p>}
+          {error && (
+            <p className="text-base font-extrabold text-[var(--brick-red)]">{error}</p>
+          )}
           <button
             type="button"
-            className="lego-btn lego-btn-primary w-full"
+            className="lego-btn lego-btn-yellow w-full"
             disabled={busy}
             onClick={submit}
           >
             {busy ? "…" : "Continue"}
           </button>
-          <button type="button" className="text-sm font-semibold underline" onClick={() => setMode("pick")}>
+          <button
+            type="button"
+            className="w-full text-base font-extrabold underline"
+            onClick={() => setMode("pick")}
+          >
             Back
           </button>
         </div>

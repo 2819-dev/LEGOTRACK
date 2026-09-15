@@ -104,29 +104,29 @@ export function SplashScreen() {
   }, []);
 
   return (
-    <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-5 pb-10 pt-12">
+    <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-[max(1.75rem,env(safe-area-inset-left))] pb-[max(2.25rem,env(safe-area-inset-bottom))] pt-[max(2.75rem,env(safe-area-inset-top))]">
       <div className="pointer-events-none absolute inset-0 bg-[#FFD500]" />
       <div className="splash-studs pointer-events-none absolute inset-0 opacity-30" />
 
-      <h1 className="lego-logo relative z-30 w-full text-center text-[clamp(2.8rem,13vw,5rem)] leading-none">
+      <h1 className="lego-logo relative z-30 w-full px-2 text-center text-[clamp(3.2rem,11vw,5.75rem)] leading-[0.95]">
         LEGOTRACK
       </h1>
 
-      <div className="relative z-10 mt-4 flex w-full flex-1 items-center justify-center">
-        <div className="absolute inset-[-8%] z-0">
+      <div className="relative z-10 mt-7 flex w-full max-w-4xl flex-1 items-center justify-center sm:mt-10">
+        <div className="absolute inset-[-6%] z-0 sm:inset-[-10%]">
           <RayBurst />
         </div>
 
-        <div className="pointer-events-none absolute z-10 h-[min(42vw,220px)] w-[min(72vw,360px)] rounded-full bg-[#FFD500]" />
+        <div className="pointer-events-none absolute z-10 h-[min(38vw,260px)] w-[min(70vw,440px)] rounded-full bg-[#FFD500]" />
 
-        <div className="relative z-20 h-[min(52vw,300px)] w-[min(92vw,520px)]">
+        <div className="relative z-20 h-[min(50vw,380px)] w-[min(92vw,680px)]">
           <Image
             src={OFFICIAL_SETS[current]}
             alt=""
             width={1100}
             height={900}
             priority
-            className="absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.28)]"
+            className="absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.28)]"
           />
           <Image
             src={OFFICIAL_SETS[next]}
@@ -134,7 +134,7 @@ export function SplashScreen() {
             width={1100}
             height={900}
             priority
-            className={`absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.28)] transition-opacity duration-700 ease-in-out ${
+            className={`absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.28)] transition-opacity duration-700 ease-in-out ${
               crossfading ? "opacity-100" : "opacity-0"
             }`}
           />
@@ -144,7 +144,7 @@ export function SplashScreen() {
       <button
         type="button"
         onClick={() => router.push("/auth")}
-        className="lego-btn relative z-30 mt-4 w-full max-w-sm"
+        className="lego-btn lego-btn-yellow relative z-30 mt-10 w-full max-w-md"
       >
         Continue
       </button>

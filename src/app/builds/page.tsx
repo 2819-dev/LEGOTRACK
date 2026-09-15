@@ -66,13 +66,13 @@ export default function BuildsPage() {
     refresh();
   }
 
-  if (!user) return <main className="p-8 text-center font-bold">Loading…</main>;
+  if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
     <AppShell user={user}>
-      <section className="panel space-y-3">
-        <h1 className="brand-title text-3xl">Submit a build</h1>
-        <p className="text-sm text-black/70">
+      <section className="panel space-y-4">
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Submit a build</h1>
+        <p className="soft-copy">
           Photo your house, car, or street. Admins review against community standards.
         </p>
         <input
@@ -82,36 +82,45 @@ export default function BuildsPage() {
           onChange={(e) => setTitle(e.target.value)}
         />
         <textarea
-          className="field min-h-24"
+          className="field"
           placeholder="Optional notes"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(e) => onFile(e.target.files?.[0] || null)}
-        />
+        <label className="file-btn">
+          {image ? "Change photo" : "Take or pick a photo"}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => onFile(e.target.files?.[0] || null)}
+          />
+        </label>
         {image && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="Preview" className="max-h-48 rounded-lg border-2 border-black object-contain" />
+          <img
+            src={image}
+            alt="Preview"
+            className="max-h-56 w-full rounded-xl border-4 border-black object-contain"
+          />
         )}
-        <button type="button" className="lego-btn lego-btn-primary w-full" onClick={submit}>
+        <button type="button" className="lego-btn lego-btn-yellow w-full" onClick={submit}>
           Submit for review
         </button>
-        {msg && <p className="text-sm font-bold">{msg}</p>}
+        {msg && <p className="text-base font-extrabold">{msg}</p>}
       </section>
 
-      <section className="mt-6 space-y-3">
-        <h2 className="brand-title text-2xl">Your submissions</h2>
-        {builds.length === 0 && <p className="text-sm font-semibold text-black/60">None yet.</p>}
+      <section className="space-y-4">
+        <h2 className="brand-title text-[clamp(1.5rem,4vw,2rem)]">Your submissions</h2>
+        {builds.length === 0 && (
+          <p className="soft-copy text-center">None yet — snap a build and send it in!</p>
+        )}
         {builds.map((b) => (
-          <article key={b.id} className="panel">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-extrabold">{b.title}</h3>
+          <article key={b.id} className="panel space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-lg font-extrabold leading-tight sm:text-xl">{b.title}</h3>
               <span
-                className={`rounded-full border-2 border-black px-2 py-0.5 text-xs font-bold uppercase ${
+                className={`status-pill shrink-0 ${
                   b.status === "approved"
                     ? "bg-[var(--brick-green)] text-white"
                     : b.status === "rejected"
@@ -122,15 +131,17 @@ export default function BuildsPage() {
                 {b.status}
               </span>
             </div>
-            {b.description && <p className="mt-1 text-sm">{b.description}</p>}
+            {b.description && <p className="soft-copy text-[1rem]">{b.description}</p>}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={b.image_data}
               alt={b.title}
-              className="mt-2 max-h-40 w-full rounded-md border-2 border-black object-cover"
+              className="max-h-48 w-full rounded-xl border-3 border-black object-cover"
             />
             {b.admin_notes && (
-              <p className="mt-2 text-sm font-semibold text-black/70">Admin: {b.admin_notes}</p>
+              <p className="rounded-xl bg-[#fff8d6] p-3 text-base font-bold text-black/75">
+                Admin: {b.admin_notes}
+              </p>
             )}
           </article>
         ))}

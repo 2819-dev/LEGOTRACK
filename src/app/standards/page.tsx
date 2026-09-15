@@ -29,7 +29,7 @@ export default function StandardsPage() {
       .then((d) => setStandards(d.standards || []));
   }, [router]);
 
-  if (!user) return <main className="p-8 text-center font-bold">Loading…</main>;
+  if (!user) return <main className="loading-screen">Loading…</main>;
 
   const rules = standards.filter((s) => !s.is_exception);
   const exceptions = standards.filter((s) => s.is_exception);
@@ -37,29 +37,36 @@ export default function StandardsPage() {
   return (
     <AppShell user={user}>
       <section className="panel">
-        <h1 className="brand-title text-3xl">Community standards</h1>
-        <p className="mt-2 text-sm text-black/70">
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Community rules</h1>
+        <p className="soft-copy mt-3">
           We want a city that feels real — without requiring every brick detail.
         </p>
       </section>
 
-      <div className="mt-4 space-y-3">
-        {rules.map((s) => (
+      <div className="stack">
+        {rules.map((s, i) => (
           <article key={s.id} className="panel">
-            <h2 className="brand-title text-xl">{s.title}</h2>
-            <p className="mt-1 text-sm leading-relaxed">{s.body}</p>
+            <div className="mb-2 flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-3 border-black bg-[var(--brick-yellow)] text-lg font-extrabold">
+                {i + 1}
+              </span>
+              <h2 className="brand-title pt-1 text-[clamp(1.3rem,3.5vw,1.7rem)]">{s.title}</h2>
+            </div>
+            <p className="soft-copy pl-0 sm:pl-[3.25rem]">{s.body}</p>
           </article>
         ))}
       </div>
 
       {exceptions.length > 0 && (
-        <section className="mt-6">
-          <h2 className="brand-title text-2xl text-[var(--brick-blue)]">Exceptions</h2>
-          <div className="mt-3 space-y-3">
+        <section className="space-y-4">
+          <h2 className="brand-title text-[clamp(1.5rem,4vw,2rem)] text-[var(--brick-blue)]">
+            Exceptions
+          </h2>
+          <div className="stack">
             {exceptions.map((s) => (
-              <article key={s.id} className="panel border-[var(--brick-blue)]">
-                <h3 className="font-extrabold">{s.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed">{s.body}</p>
+              <article key={s.id} className="panel border-[var(--brick-blue)] bg-[#eff6ff]">
+                <h3 className="text-lg font-extrabold sm:text-xl">{s.title}</h3>
+                <p className="soft-copy mt-2">{s.body}</p>
               </article>
             ))}
           </div>

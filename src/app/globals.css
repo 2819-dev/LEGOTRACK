@@ -7,30 +7,40 @@
   --brick-green: #00af4d;
   --brick-orange: #ff6d00;
   --ink: #111111;
-  --paper: #ffffff;
+  --paper: #fffdf5;
   --background: #ffd500;
   --foreground: #111111;
+  --pad: clamp(1.35rem, 3.8vw, 2.25rem);
+  --gap: clamp(1rem, 2.5vw, 1.4rem);
+  --touch: 3.35rem;
+  --radius: 1.1rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-body);
-  --font-display: var(--font-display);
+  --font-display: var(--font-brick);
 }
 
 html,
 body {
   min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
   margin: 0;
   color: var(--ink);
-  background: #fff;
+  background:
+    radial-gradient(#00000012 3.5px, transparent 4px) 0 0 / 24px 24px,
+    linear-gradient(180deg, #fff8d6 0%, #ffe566 38%, #ffd500 100%);
   font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
+/* Playful brick logo */
 .lego-logo {
   font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
   font-weight: 400;
@@ -38,107 +48,219 @@ body {
   text-transform: uppercase;
   color: #000;
   text-align: center;
-  -webkit-text-stroke: 0;
   text-shadow:
     3px 3px 0 #fff,
     -1px -1px 0 #fff,
     1px -1px 0 #fff,
     -1px 1px 0 #fff,
-    4px 4px 0 #000;
+    5px 5px 0 #000;
 }
 
 .brand-title {
   font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
   font-weight: 400;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
+  line-height: 1.05;
 }
 
 .splash-studs {
-  background-image: radial-gradient(#00000018 5px, transparent 6px);
-  background-size: 28px 28px;
-  background-position: 8px 8px;
+  background-image: radial-gradient(#00000018 6px, transparent 7px);
+  background-size: 32px 32px;
+  background-position: 10px 10px;
 }
 
-.strip {
-  box-shadow: 1px 1px 0 #00000055;
-}
-
-.strip-from-left {
-  left: 0;
-  animation: strip-in-left 2.8s ease-in-out infinite alternate;
-}
-
-.strip-from-right {
-  right: 0;
-  animation: strip-in-right 2.8s ease-in-out infinite alternate;
-}
-
-@keyframes strip-in-left {
-  0% {
-    transform: translateX(-28%);
-  }
-  100% {
-    transform: translateX(8%);
-  }
-}
-
-@keyframes strip-in-right {
-  0% {
-    transform: translateX(28%);
-  }
-  100% {
-    transform: translateX(-8%);
-  }
-}
-
-/* Old uniform .ray bars removed — splash uses SVG tapered wedges now */
-
+/* Big kid-friendly buttons — iPad finger sized */
 .lego-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 3.35rem;
-  border-radius: 0.35rem;
+  min-height: var(--touch);
+  padding: 0.9rem 1.5rem;
+  border-radius: calc(var(--radius) - 0.15rem);
   border: 4px solid #111;
   background: #fff;
   color: #111;
   font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
-  font-size: 1.2rem;
+  font-size: clamp(1.15rem, 2.6vw, 1.5rem);
   font-weight: 400;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  box-shadow: 0 5px 0 #111;
-  transition: transform 100ms ease, box-shadow 100ms ease;
+  box-shadow: 0 7px 0 #111;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .lego-btn:active {
-  transform: translateY(3px);
+  transform: translateY(5px);
   box-shadow: 0 2px 0 #111;
+}
+
+.lego-btn:disabled {
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .lego-btn-primary {
   background: #fff;
 }
 
+.lego-btn-yellow {
+  background: var(--brick-yellow);
+}
+
+.lego-btn-blue {
+  background: #7dd3fc;
+}
+
+.lego-btn-green {
+  background: #86efac;
+}
+
+.lego-btn-red {
+  background: #fecaca;
+}
+
 .panel {
-  border: 3px solid #111;
-  border-radius: 0.35rem;
+  border: 4px solid #111;
+  border-radius: var(--radius);
   background: #fff;
-  box-shadow: 4px 4px 0 #111;
-  padding: 1rem;
+  box-shadow: 6px 6px 0 #111;
+  padding: clamp(1.2rem, 3.2vw, 1.75rem);
 }
 
 .field {
   width: 100%;
-  border: 3px solid #111;
-  border-radius: 0.35rem;
-  padding: 0.75rem 0.9rem;
-  font-size: 1rem;
+  min-height: var(--touch);
+  border: 4px solid #111;
+  border-radius: calc(var(--radius) - 0.15rem);
+  padding: 0.9rem 1.05rem;
+  font-size: 1.125rem;
+  font-weight: 700;
   background: #fff;
+  touch-action: manipulation;
 }
 
 .field:focus {
-  outline: 3px solid var(--brick-blue);
-  outline-offset: 1px;
+  outline: 4px solid var(--brick-blue);
+  outline-offset: 2px;
+}
+
+textarea.field {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.85rem;
+  padding: 0.6rem 1.1rem;
+  border: 3px solid #111;
+  border-radius: 999px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  background: #fff;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.chip-active {
+  background: #111;
+  color: #fff;
+}
+
+.page-wrap {
+  width: 100%;
+  max-width: 56rem;
+  margin-inline: auto;
+  padding-inline: max(var(--pad), env(safe-area-inset-left), env(safe-area-inset-right));
+  padding-bottom: max(1.75rem, env(safe-area-inset-bottom));
+}
+
+.soft-copy {
+  font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.tile {
+  overflow: hidden;
+  border: 3px solid #111;
+  border-radius: calc(var(--radius) - 0.2rem);
+  background: #fff;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.85rem;
+  border: 3px solid #111;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.file-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--touch);
+  padding: 0.9rem 1.2rem;
+  border: 4px dashed #111;
+  border-radius: calc(var(--radius) - 0.15rem);
+  background: #fffef0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.file-btn input {
+  display: none;
+}
+
+.loading-screen {
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --touch: 3.6rem;
+    --radius: 1.2rem;
+    --pad: clamp(1.75rem, 3vw, 2.5rem);
+  }
+
+  .page-wrap {
+    max-width: 62rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-wrap {
+    max-width: 68rem;
+  }
 }

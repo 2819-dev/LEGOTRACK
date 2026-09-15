@@ -217,18 +217,18 @@ export default function AdminPage() {
     loadAll();
   }
 
-  if (!user) return <main className="p-8 text-center font-bold">Loading…</main>;
+  if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
     <AppShell user={user}>
       <section className="panel">
-        <h1 className="brand-title text-3xl">Admin panel</h1>
-        <p className="mt-1 text-sm text-black/70">
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Admin panel</h1>
+        <p className="soft-copy mt-3">
           Scan minifigs and approved sets, assign owners, review builds, edit rules.
         </p>
       </section>
 
-      <div className="mt-3 flex gap-1 overflow-x-auto">
+      <div className="flex gap-2.5 overflow-x-auto pb-1">
         {(
           [
             ["scan", "Scan"],
@@ -242,26 +242,28 @@ export default function AdminPage() {
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`rounded-md border-2 border-black px-3 py-1.5 text-sm font-bold ${
-              tab === id ? "bg-black text-white" : "bg-white"
-            }`}
+            className={`chip shrink-0 ${tab === id ? "chip-active" : ""}`}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {msg && <p className="mt-3 text-sm font-bold">{msg}</p>}
+      {msg && (
+        <p className="rounded-xl border-3 border-black bg-white px-4 py-3 text-base font-extrabold">
+          {msg}
+        </p>
+      )}
 
       {tab === "scan" && (
-        <section className="panel mt-4 space-y-3">
-          <h2 className="brand-title text-xl">Scan into LEGOTRACK</h2>
-          <div className="flex gap-2">
+        <section className="panel space-y-4">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Scan into LEGOTRACK</h2>
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setScanMode("minifig")}
-              className={`flex-1 rounded-md border-2 border-black px-2 py-2 text-sm font-bold ${
-                scanMode === "minifig" ? "bg-black text-white" : "bg-white"
+              className={`chip min-h-14 justify-center ${
+                scanMode === "minifig" ? "chip-active" : ""
               }`}
             >
               Minifig pieces
@@ -269,22 +271,20 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={() => setScanMode("set")}
-              className={`flex-1 rounded-md border-2 border-black px-2 py-2 text-sm font-bold ${
-                scanMode === "set" ? "bg-black text-white" : "bg-white"
-              }`}
+              className={`chip min-h-14 justify-center ${scanMode === "set" ? "chip-active" : ""}`}
             >
               Approved set
             </button>
           </div>
 
           {scanMode === "minifig" ? (
-            <p className="text-sm text-black/70">
+            <p className="soft-copy">
               Photo a full figure or parts tray. Full characters always become separate hair / head /
               shirt / pants pieces.
             </p>
           ) : (
             <>
-              <p className="text-sm text-black/70">
+              <p className="soft-copy">
                 Photo an approved Lego set for the city catalog, then assign who owns it.
               </p>
               <input
@@ -296,28 +296,30 @@ export default function AdminPage() {
             </>
           )}
 
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            disabled={busy}
-            onChange={(e) => onScanFile(e.target.files?.[0] || null)}
-          />
-          {busy && (
-            <p className="text-sm font-semibold">
-              {scanMode === "minifig" ? "Splitting pieces…" : "Saving set…"}
-            </p>
-          )}
+          <label className={`file-btn ${busy ? "opacity-50" : ""}`}>
+            {busy
+              ? scanMode === "minifig"
+                ? "Splitting pieces…"
+                : "Saving set…"
+              : "Take or pick a photo"}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={busy}
+              onChange={(e) => onScanFile(e.target.files?.[0] || null)}
+            />
+          </label>
 
           {scanMode === "minifig" && (
             <>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {scanPreview.map((p) => (
-                  <div key={p.id} className="rounded-lg border-2 border-black p-2">
+                  <div key={p.id} className="tile space-y-2 p-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image_data} alt="" className="h-24 w-full object-contain" />
+                    <img src={p.image_data} alt="" className="h-28 w-full object-contain" />
                     <select
-                      className="field mt-2 text-sm"
+                      className="field text-base"
                       value={p.category}
                       onChange={(e) => reassign(p.id, e.target.value)}
                     >
@@ -330,13 +332,13 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
-              <h3 className="pt-2 font-extrabold">Piece library ({pieces.length})</h3>
-              <div className="grid grid-cols-4 gap-2">
+              <h3 className="pt-2 text-lg font-extrabold">Piece library ({pieces.length})</h3>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                 {pieces.slice(0, 24).map((p) => (
-                  <div key={p.id} className="rounded border-2 border-black bg-white p-1">
+                  <div key={p.id} className="tile p-1.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image_data} alt="" className="h-14 w-full object-contain" />
-                    <p className="truncate text-center text-[10px] font-bold capitalize">
+                    <img src={p.image_data} alt="" className="h-16 w-full object-contain" />
+                    <p className="truncate text-center text-[11px] font-bold capitalize">
                       {p.category}
                     </p>
                   </div>
@@ -348,26 +350,26 @@ export default function AdminPage() {
       )}
 
       {tab === "sets" && (
-        <section className="mt-4 space-y-3">
-          <p className="text-sm font-semibold text-black/70">
+        <section className="stack">
+          <p className="soft-copy">
             Approved sets in the city. Assign an owner so everyone knows who has it.
           </p>
           {catalog.length === 0 && (
-            <p className="text-sm font-semibold">No sets yet — scan one from the Scan tab.</p>
+            <p className="soft-copy text-center">No sets yet — scan one from the Scan tab.</p>
           )}
           {catalog.map((s) => (
-            <article key={s.id} className="panel space-y-2">
+            <article key={s.id} className="panel space-y-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={s.image_data}
                 alt={s.name}
-                className="max-h-40 w-full rounded-md border-2 border-black object-contain bg-[#f4efe4]"
+                className="max-h-48 w-full rounded-xl border-3 border-black bg-[#fff8d6] object-contain"
               />
-              <h3 className="font-extrabold">{s.name}</h3>
-              <label className="block text-xs font-bold">
+              <h3 className="text-lg font-extrabold sm:text-xl">{s.name}</h3>
+              <label className="block text-base font-extrabold">
                 Owner
                 <select
-                  className="field mt-1 text-sm"
+                  className="field mt-2"
                   value={s.owner_id || ""}
                   onChange={(e) => assignSetOwner(s.id, e.target.value)}
                 >
@@ -381,7 +383,7 @@ export default function AdminPage() {
               </label>
               <button
                 type="button"
-                className="text-xs font-bold text-[var(--brick-red)]"
+                className="chip min-h-11 border-[var(--brick-red)] bg-[#fecaca] text-sm"
                 onClick={() => deleteSet(s.id)}
               >
                 Delete set
@@ -392,8 +394,8 @@ export default function AdminPage() {
       )}
 
       {tab === "users" && (
-        <section className="panel mt-4 space-y-3">
-          <h2 className="brand-title text-xl">Add person</h2>
+        <section className="panel space-y-4">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Add person</h2>
           <input
             className="field"
             placeholder="Name"
@@ -414,18 +416,18 @@ export default function AdminPage() {
             <option value="player">Player</option>
             <option value="admin">Admin</option>
           </select>
-          <button type="button" className="lego-btn lego-btn-primary w-full" onClick={addUser}>
+          <button type="button" className="lego-btn lego-btn-yellow w-full" onClick={addUser}>
             Add
           </button>
-          <ul className="space-y-2 pt-2">
+          <ul className="space-y-3 pt-2">
             {users.map((u) => (
               <li
                 key={u.id}
-                className="flex items-center justify-between border-b border-black/10 py-2"
+                className="flex items-center justify-between rounded-xl border-3 border-black bg-[#fffef5] px-4 py-3"
               >
                 <div>
-                  <p className="font-extrabold">{u.name}</p>
-                  <p className="text-xs text-black/60">
+                  <p className="text-lg font-extrabold">{u.name}</p>
+                  <p className="text-sm font-bold text-black/60">
                     {u.role}
                     {u.avatar_complete ? " · avatar ready" : " · no avatar"}
                   </p>
@@ -437,28 +439,26 @@ export default function AdminPage() {
       )}
 
       {tab === "reviews" && (
-        <section className="mt-4 space-y-3">
+        <section className="stack">
           {builds.map((b) => (
-            <article key={b.id} className="panel space-y-2">
-              <div className="flex justify-between gap-2">
-                <div>
-                  <h3 className="font-extrabold">{b.title}</h3>
-                  <p className="text-xs text-black/60">
-                    {b.user_name || "player"} · {b.status}
-                  </p>
-                </div>
+            <article key={b.id} className="panel space-y-3">
+              <div>
+                <h3 className="text-lg font-extrabold sm:text-xl">{b.title}</h3>
+                <p className="mt-1 text-sm font-bold text-black/60">
+                  {b.user_name || "player"} · {b.status}
+                </p>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={b.image_data}
                 alt={b.title}
-                className="max-h-48 w-full rounded-md border-2 border-black object-cover"
+                className="max-h-52 w-full rounded-xl border-3 border-black object-cover"
               />
               {b.status === "pending" && (
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    className="flex-1 rounded-md border-2 border-black bg-[var(--brick-green)] px-2 py-2 text-sm font-bold text-white"
+                    className="lego-btn lego-btn-green text-[clamp(0.95rem,2.2vw,1.2rem)]"
                     onClick={() =>
                       review(b.id, "approved", "Approved — now tracked under this owner in the city.")
                     }
@@ -467,7 +467,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     type="button"
-                    className="flex-1 rounded-md border-2 border-black bg-[var(--brick-red)] px-2 py-2 text-sm font-bold text-white"
+                    className="lego-btn lego-btn-red text-[clamp(0.95rem,2.2vw,1.2rem)]"
                     onClick={() =>
                       review(
                         b.id,
@@ -482,13 +482,15 @@ export default function AdminPage() {
               )}
             </article>
           ))}
-          {builds.length === 0 && <p className="text-sm font-semibold">No submissions yet.</p>}
+          {builds.length === 0 && (
+            <p className="soft-copy text-center">No submissions yet.</p>
+          )}
         </section>
       )}
 
       {tab === "rules" && (
-        <section className="panel mt-4 space-y-3">
-          <h2 className="brand-title text-xl">Add standard</h2>
+        <section className="panel space-y-4">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Add standard</h2>
           <input
             className="field"
             placeholder="Title"
@@ -496,36 +498,37 @@ export default function AdminPage() {
             onChange={(e) => setRuleTitle(e.target.value)}
           />
           <textarea
-            className="field min-h-24"
+            className="field"
             placeholder="Body"
             value={ruleBody}
             onChange={(e) => setRuleBody(e.target.value)}
           />
-          <label className="flex items-center gap-2 text-sm font-bold">
+          <label className="flex min-h-12 items-center gap-3 text-base font-extrabold">
             <input
               type="checkbox"
+              className="h-6 w-6 accent-[var(--brick-blue)]"
               checked={ruleException}
               onChange={(e) => setRuleException(e.target.checked)}
             />
             Mark as exception
           </label>
-          <button type="button" className="lego-btn lego-btn-primary w-full" onClick={addRule}>
+          <button type="button" className="lego-btn lego-btn-yellow w-full" onClick={addRule}>
             Save rule
           </button>
-          <ul className="space-y-2 pt-2">
+          <ul className="space-y-3 pt-2">
             {standards.map((s) => (
-              <li key={s.id} className="rounded-lg border-2 border-black p-2">
-                <div className="flex items-start justify-between gap-2">
+              <li key={s.id} className="tile space-y-2 p-4">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-extrabold">
+                    <p className="text-lg font-extrabold">
                       {s.title}
                       {s.is_exception ? " (exception)" : ""}
                     </p>
-                    <p className="text-sm">{s.body}</p>
+                    <p className="soft-copy mt-1 text-[1rem]">{s.body}</p>
                   </div>
                   <button
                     type="button"
-                    className="text-xs font-bold text-[var(--brick-red)]"
+                    className="chip min-h-11 shrink-0 border-[var(--brick-red)] bg-[#fecaca] text-sm"
                     onClick={() => deleteRule(s.id)}
                   >
                     Delete

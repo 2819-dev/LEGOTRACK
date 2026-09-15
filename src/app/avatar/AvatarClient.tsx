@@ -88,26 +88,26 @@ export default function AvatarClient() {
     if (onboarding) router.push("/home");
   }
 
-  if (!user) return <main className="p-8 text-center font-bold">Loading…</main>;
+  if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
     <AppShell user={user}>
       <section className="panel">
-        <h1 className="brand-title text-3xl">
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">
           {onboarding ? "Create your avatar" : "Avatar builder"}
         </h1>
-        <p className="mt-1 text-sm text-black/70">
-          Pieces come from real minifigs scanned in admin — always split into separate parts.
+        <p className="soft-copy mt-3">
+          Pick real scanned pieces — hair, head, shirt, and pants — to build your minifig.
         </p>
       </section>
 
-      <div className="panel mt-4 flex justify-center bg-[linear-gradient(180deg,#dbeafe,#fff)]">
-        <div className="relative flex h-64 w-40 flex-col items-center overflow-hidden rounded-xl border-3 border-black bg-white">
+      <div className="panel flex justify-center bg-[linear-gradient(180deg,#dbeafe,#fffef5)] py-6 sm:py-8">
+        <div className="relative flex h-72 w-44 flex-col items-center overflow-hidden rounded-2xl border-4 border-black bg-white shadow-[5px_5px_0_#111] sm:h-80 sm:w-48">
           {preview.hair ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview.hair} alt="" className="h-[18%] w-full object-contain" />
           ) : (
-            <div className="flex h-[18%] w-full items-center justify-center bg-black/5 text-[10px]">
+            <div className="flex h-[18%] w-full items-center justify-center bg-black/5 text-xs font-bold">
               hair
             </div>
           )}
@@ -115,7 +115,7 @@ export default function AvatarClient() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview.head} alt="" className="h-[28%] w-full object-contain" />
           ) : (
-            <div className="flex h-[28%] w-full items-center justify-center bg-black/5 text-[10px]">
+            <div className="flex h-[28%] w-full items-center justify-center bg-black/5 text-xs font-bold">
               head
             </div>
           )}
@@ -123,7 +123,7 @@ export default function AvatarClient() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview.shirt} alt="" className="h-[28%] w-full object-contain" />
           ) : (
-            <div className="flex h-[28%] w-full items-center justify-center bg-black/5 text-[10px]">
+            <div className="flex h-[28%] w-full items-center justify-center bg-black/5 text-xs font-bold">
               shirt
             </div>
           )}
@@ -131,31 +131,29 @@ export default function AvatarClient() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview.pants} alt="" className="h-[26%] w-full object-contain" />
           ) : (
-            <div className="flex h-[26%] w-full items-center justify-center bg-black/5 text-[10px]">
+            <div className="flex h-[26%] w-full items-center justify-center bg-black/5 text-xs font-bold">
               pants
             </div>
           )}
         </div>
       </div>
 
-      <div className="mt-4 flex gap-1 overflow-x-auto">
+      <div className="flex gap-2.5 overflow-x-auto pb-1">
         {TABS.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`rounded-md border-2 border-black px-3 py-1.5 text-sm font-bold capitalize ${
-              tab === t ? "bg-black text-white" : "bg-white"
-            }`}
+            className={`chip shrink-0 capitalize ${tab === t ? "chip-active" : ""}`}
           >
             {t}
           </button>
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
         {byTab.length === 0 && (
-          <p className="col-span-3 text-sm font-semibold text-black/60">
+          <p className="soft-copy col-span-full text-center">
             No {tab} pieces yet. Admin can scan them in.
           </p>
         )}
@@ -167,15 +165,15 @@ export default function AvatarClient() {
               key={p.id}
               type="button"
               onClick={() => setSel((s) => ({ ...s, [key]: p.id }))}
-              className={`overflow-hidden rounded-lg border-3 p-1 ${
-                active ? "border-[var(--brick-blue)] bg-[#e8f1ff]" : "border-black bg-white"
+              className={`tile min-h-[5.5rem] p-2 transition-transform active:scale-[0.97] ${
+                active ? "bg-[#dbeafe] ring-4 ring-[var(--brick-blue)]" : ""
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={p.image_data}
                 alt={p.label || p.category}
-                className="h-20 w-full object-contain"
+                className="h-24 w-full object-contain sm:h-28"
               />
             </button>
           );
@@ -184,13 +182,13 @@ export default function AvatarClient() {
 
       <button
         type="button"
-        className="lego-btn lego-btn-primary mt-6 w-full"
+        className="lego-btn lego-btn-yellow w-full"
         disabled={saving}
         onClick={save}
       >
         {saving ? "Saving…" : onboarding ? "Continue" : "Save avatar"}
       </button>
-      {msg && <p className="mt-2 text-center text-sm font-bold">{msg}</p>}
+      {msg && <p className="text-center text-base font-extrabold">{msg}</p>}
     </AppShell>
   );
 }
