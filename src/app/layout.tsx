@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Bungee, Nunito } from "next/font/google";
+import { Bowlby_One_SC, Nunito } from "next/font/google";
 import "./globals.css";
 
-const brick = Bungee({
+const brick = Bowlby_One_SC({
   variable: "--font-brick",
   subsets: ["latin"],
   weight: "400",
