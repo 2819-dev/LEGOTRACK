@@ -118,22 +118,22 @@ export function SplashScreen() {
         </div>
 
         {/* Clear pocket for the set so rays feel like they come FROM it */}
-        <div className="pointer-events-none absolute z-10 h-[min(48vw,260px)] w-[min(48vw,260px)] rounded-full bg-[#FFD500]" />
+        <div className="pointer-events-none absolute z-10 h-[min(42vw,220px)] w-[min(72vw,360px)] rounded-full bg-[#FFD500]" />
 
-        <div className="relative z-20 flex h-[min(58vw,320px)] w-[min(58vw,320px)] items-center justify-center">
+        <div className="relative z-20 flex h-[min(52vw,300px)] w-[min(92vw,520px)] items-center justify-center">
           {hasSets ? (
             <div
-              className={`transition-opacity duration-500 ${
+              className={`flex h-full w-full items-center justify-center transition-opacity duration-500 ${
                 visible ? "opacity-100" : "opacity-0"
               }`}
             >
               <Image
                 src={OFFICIAL_SETS[index]}
                 alt="Lego set"
-                width={720}
-                height={720}
+                width={1100}
+                height={900}
                 priority
-                className="max-h-[min(58vw,320px)] max-w-[min(58vw,320px)] object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.25)]"
+                className="max-h-full max-w-full object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.28)]"
               />
             </div>
           ) : (
