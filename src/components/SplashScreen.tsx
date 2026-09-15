@@ -4,15 +4,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-/** Drop more transparent PNGs in /public/sets/cutouts — they will cycle automatically. */
-const SETS = [
-  "/sets/cutouts/4.png",
-  "/sets/cutouts/2.png",
-  "/sets/cutouts/1.png",
-  "/sets/cutouts/3.png",
+/**
+ * Official LEGO set PNGs with real transparent backgrounds go here.
+ * Until you upload them, the splash shows a clear placeholder — no fake cutouts.
+ *
+ * Drop files into: public/sets/official/
+ * Then add their paths to OFFICIAL_SETS below (or ask me after you upload).
+ */
+const OFFICIAL_SETS: string[] = [
+  // e.g. "/sets/official/city-fire-station.png",
 ];
 
-/** Official-ish LEGO primary palette for radial rays */
+/** Classic LEGO primaries — playful packaging energy */
 const RAY_COLORS = [
   "#E3000B",
   "#FFD500",
@@ -20,81 +23,127 @@ const RAY_COLORS = [
   "#00AF4D",
   "#FFFFFF",
   "#FF6D00",
-  "#000000",
   "#E3000B",
   "#0055BF",
   "#FFD500",
   "#00AF4D",
   "#FFFFFF",
+  "#000000",
 ];
+
+/** Tapered sunburst ray: skinny near the set, fat at the edge */
+function RayBurst() {
+  const cx = 50;
+  const cy = 50;
+  const innerR = 8; // start a little out from dead center so the set sits in a clear pocket
+  const outerR = 78;
+  const count = RAY_COLORS.length;
+  const halfInnerDeg = 2.2; // narrow near center
+  const halfOuterDeg = 9.5; // wide at the rim
+
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const pt = (deg: number, r: number) => {
+    const a = toRad(deg - 90);
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as const;
+  };
+
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden
+    >
+      {RAY_COLORS.map((color, i) => {
+        const mid = (360 / count) * i;
+        const [x1, y1] = pt(mid - halfInnerDeg, innerR);
+        const [x2, y2] = pt(mid + halfInnerDeg, innerR);
+        const [x3, y3] = pt(mid + halfOuterDeg, outerR);
+        const [x4, y4] = pt(mid - halfOuterDeg, outerR);
+        return (
+          <polygon
+            key={`${color}-${i}`}
+            points={`${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`}
+            fill={color}
+            stroke="#111"
+            strokeWidth="0.35"
+            strokeLinejoin="round"
+            opacity={color === "#FFFFFF" ? 0.95 : 1}
+          />
+        );
+      })}
+    </svg>
+  );
+}
 
 export function SplashScreen() {
   const router = useRouter();
+  const hasSets = OFFICIAL_SETS.length > 0;
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    if (!hasSets) return;
     const cycle = setInterval(() => {
       setVisible(false);
       window.setTimeout(() => {
-        setIndex((i) => (i + 1) % SETS.length);
+        setIndex((i) => (i + 1) % OFFICIAL_SETS.length);
         setVisible(true);
       }, 450);
     }, 3600);
     return () => clearInterval(cycle);
-  }, []);
+  }, [hasSets]);
 
   return (
     <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-5 pb-10 pt-12">
-      {/* Fun professional yellow field + stud texture */}
       <div className="pointer-events-none absolute inset-0 bg-[#FFD500]" />
-      <div className="splash-studs pointer-events-none absolute inset-0 opacity-35" />
+      <div className="splash-studs pointer-events-none absolute inset-0 opacity-30" />
 
       <h1 className="lego-logo relative z-30 w-full text-center text-[clamp(2.8rem,13vw,5rem)] leading-none">
         LEGOTRACK
       </h1>
 
-      {/* Stage: rays burst from center + floating transparent set */}
-      <div className="relative z-10 mt-6 flex w-full flex-1 items-center justify-center">
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
-          {RAY_COLORS.map((color, i) => {
-            const angle = (360 / RAY_COLORS.length) * i - 90;
-            return (
-              <div
-                key={`${color}-${i}`}
-                className="ray"
-                style={{
-                  backgroundColor: color,
-                  transform: `rotate(${angle}deg)`,
-                }}
-              />
-            );
-          })}
+      <div className="relative z-10 mt-4 flex w-full flex-1 items-center justify-center">
+        {/* Tapered color burst — thin at center, wide at edges */}
+        <div className="absolute inset-[-8%] z-0">
+          <RayBurst />
         </div>
 
-        {/* Soft yellow disc so the set pops over the rays */}
-        <div className="pointer-events-none absolute h-[min(70vw,380px)] w-[min(70vw,380px)] rounded-full bg-[#FFD500]/80" />
+        {/* Clear pocket for the set so rays feel like they come FROM it */}
+        <div className="pointer-events-none absolute z-10 h-[min(48vw,260px)] w-[min(48vw,260px)] rounded-full bg-[#FFD500]" />
 
-        <div
-          className={`relative z-20 flex h-[min(62vw,340px)] w-[min(62vw,340px)] items-center justify-center transition-opacity duration-500 ${
-            visible ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <Image
-            src={SETS[index]}
-            alt="Lego set"
-            width={680}
-            height={680}
-            priority
-            className="max-h-full max-w-full object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.22)]"
-          />
+        <div className="relative z-20 flex h-[min(58vw,320px)] w-[min(58vw,320px)] items-center justify-center">
+          {hasSets ? (
+            <div
+              className={`transition-opacity duration-500 ${
+                visible ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <Image
+                src={OFFICIAL_SETS[index]}
+                alt="Lego set"
+                width={720}
+                height={720}
+                priority
+                className="max-h-[min(58vw,320px)] max-w-[min(58vw,320px)] object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.25)]"
+              />
+            </div>
+          ) : (
+            <div className="flex max-w-[280px] flex-col items-center gap-2 rounded-md border-4 border-dashed border-black/40 bg-[#FFD500]/90 px-4 py-6 text-center">
+              <p className="lego-logo text-lg leading-none">SET ART</p>
+              <p className="text-sm font-bold text-black/80">
+                Upload official Lego set PNGs with transparent backgrounds — I
+                don&apos;t have those files.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => router.push("/auth")}
-        className="lego-btn relative z-30 mt-6 w-full max-w-sm"
+        className="lego-btn relative z-30 mt-4 w-full max-w-sm"
       >
         Continue
       </button>
