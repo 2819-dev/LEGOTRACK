@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     // With gate on: new accounts only on the city iPad. Gate off: open signup.
     if (gateOn && !kiosk) {
-      return jsonError("New accounts only on the city iPad", 403);
+      return jsonError("Registration is closed on this device", 403);
     }
 
     if (name.length < 2) return jsonError("Name must be at least 2 characters");

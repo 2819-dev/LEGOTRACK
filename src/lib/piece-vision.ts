@@ -280,10 +280,10 @@ export async function detectPiecesFromFloorPhoto(input: Buffer): Promise<{
   if (pieces.length === 0) {
     note =
       rejected > 0
-        ? "Found shapes on the floor, but none matched real LEGO minifig parts. Space pieces apart on a plain floor and try again."
-        : "No pieces found. Use a plain floor, good light, and leave gaps between each part.";
+        ? "No matching pieces found. Separate parts and try again."
+        : "No pieces found. Use even lighting and separate each part.";
   } else {
-    note = `Matched ${pieces.length} real LEGO part type${pieces.length === 1 ? "" : "s"} from the catalog (dirty floor photo is only used to identify — players see the clean part).`;
+    note = `Saved ${pieces.length} piece${pieces.length === 1 ? "" : "s"}.`;
   }
 
   return {

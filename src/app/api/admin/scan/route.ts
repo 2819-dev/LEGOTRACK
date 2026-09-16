@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       return jsonOk({
         mode: "set",
         set: rows[0],
-        note: "Set saved to the city catalog. Assign an owner from the Sets tab.",
+        note: "Set saved.",
       });
     }
 
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "UNAUTHORIZED") return jsonError("Unauthorized", 401);
     if (msg === "FORBIDDEN") return jsonError("Forbidden", 403);
-    return jsonError("Scan failed — try a clearer floor photo", 500);
+    return jsonError("Scan failed. Try a clearer photo.", 500);
   }
 }
 

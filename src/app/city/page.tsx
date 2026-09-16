@@ -62,10 +62,8 @@ export default function CityPage() {
   return (
     <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
-        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Who owns what</h1>
-        <p className="soft-copy mt-3">
-          Every approved building, vehicle, and set in the city has an owner.
-        </p>
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Ownership</h1>
+        <p className="soft-copy mt-3">Approved builds and sets by owner.</p>
       </section>
 
       <div className="flex gap-2.5 overflow-x-auto pb-1">
@@ -84,7 +82,7 @@ export default function CityPage() {
       <div className="stack">
         {filtered.length === 0 && (
           <p className="soft-copy text-center">
-            Nothing claimed yet. Approve builds or assign catalog sets to people.
+            No items yet.
           </p>
         )}
         {filtered.map((group) => (

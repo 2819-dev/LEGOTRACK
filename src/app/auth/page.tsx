@@ -30,7 +30,7 @@ export default function AuthPage() {
 
   async function submit() {
     if (mode === "register" && !openSignup) {
-      setError("New accounts only on the city iPad");
+      setError("Registration is closed on this device");
       return;
     }
     setBusy(true);
@@ -69,7 +69,7 @@ export default function AuthPage() {
         <LegoLogo className="text-[clamp(2.8rem,11vw,4.4rem)] leading-none" />
       </h1>
       <p className="soft-copy mt-4 text-center">
-        {openPlayerLogin ? "Just your name and a password. Easy!" : "Admin sign-in only"}
+        {openPlayerLogin ? "Sign in with your name and password." : "Admin sign-in only"}
       </p>
 
       {mode === "pick" && (
@@ -91,7 +91,7 @@ export default function AuthPage() {
             className="mt-3 min-h-12 text-base font-extrabold underline"
             onClick={() => router.push("/")}
           >
-            Back to splash
+            Back
           </button>
         </div>
       )}

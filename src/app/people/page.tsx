@@ -55,9 +55,7 @@ export default function PeoplePage() {
     <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">People</h1>
-        <p className="soft-copy mt-3">
-          Meet the city crew — tap someone to see their minifig, job, builds, and stuff.
-        </p>
+        <p className="soft-copy mt-3">Players in the city.</p>
       </section>
 
       <div className="stack">
@@ -78,7 +76,7 @@ export default function PeoplePage() {
             <div className="min-w-0 flex-1">
               <h2 className="brand-title text-[clamp(1.25rem,3.5vw,1.6rem)]">{p.name}</h2>
               <p className="mt-1 text-base font-extrabold text-black/70">
-                {p.job || "No job yet"}
+                {p.job || "No job"}
               </p>
               <p className="mt-2 text-sm font-bold text-black/55">
                 Owns {p.owns_count} · Built {p.built_count}

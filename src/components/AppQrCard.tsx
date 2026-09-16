@@ -24,9 +24,9 @@ export function AppQrCard({ url }: { url: string }) {
   return (
     <section className="panel flex flex-col items-center gap-4 text-center">
       <div>
-        <h2 className="brand-title text-[clamp(1.2rem,3.2vw,1.5rem)]">App QR code</h2>
+        <h2 className="brand-title text-[clamp(1.2rem,3.2vw,1.5rem)]">QR code</h2>
         <p className="soft-copy mt-1.5 text-[0.95rem]">
-          Scan to open LEGOTRACK on a phone or another iPad.
+          Open this app on another device.
         </p>
       </div>
       {dataUrl ? (
@@ -38,7 +38,7 @@ export function AppQrCard({ url }: { url: string }) {
         />
       ) : (
         <div className="flex h-56 w-56 items-center justify-center rounded-xl border-4 border-black bg-white text-sm font-extrabold sm:h-64 sm:w-64">
-          Making QR…
+          Loading…
         </div>
       )}
       <p className="break-all text-sm font-extrabold text-black/70">{url}</p>

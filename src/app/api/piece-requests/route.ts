@@ -50,7 +50,7 @@ export async function POST(req: Request) {
          OR a.shirt_id = ${pieceId} OR a.pants_id = ${pieceId}
       LIMIT 1
     `;
-    if (!holders[0]) return jsonError("Nobody is using this piece right now", 400);
+    if (!holders[0]) return jsonError("This piece is not currently in use", 400);
     const toUserId = holders[0].id as string;
     if (toUserId === user.id) return jsonError("You already have this piece");
 
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       WHERE piece_id = ${pieceId} AND from_user_id = ${user.id} AND status = 'pending'
       LIMIT 1
     `;
-    if (existing[0]) return jsonError("You already asked for this piece");
+    if (existing[0]) return jsonError("You already requested this piece");
 
     const rows = await sql`
       INSERT INTO piece_requests (piece_id, from_user_id, to_user_id, status)
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     return jsonOk({
       request: rows[0],
       toName: holders[0].name,
-      note: `Asked ${holders[0].name} to free this piece up.`,
+      note: `Request sent to ${holders[0].name}.`,
     });
   } catch (e) {
     console.error(e);
@@ -129,7 +129,7 @@ export async function PATCH(req: Request) {
     return jsonOk({
       ok: true,
       status: "approved",
-      note: "Piece freed — they can pick it now. Update your avatar if you want a replacement.",
+      note: "Approved.",
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";

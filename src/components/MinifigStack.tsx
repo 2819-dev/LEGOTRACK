@@ -49,7 +49,7 @@ export function MinifigStack({
           <img src={pants} alt="" className="-mt-1 h-[28%] w-full object-contain" />
         ) : null}
         {!top && !head && !shirt && !pants && (
-          <p className="text-xs font-extrabold text-black/35">No minifig yet</p>
+          <p className="text-xs font-extrabold text-black/35">No avatar</p>
         )}
       </div>
     </div>

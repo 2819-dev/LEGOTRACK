@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     const taken = await claimCount(sql, pieceId);
     const qty = Number((stock[0] as { quantity: number }).quantity || 1);
     if (taken >= qty) {
-      return jsonError("That piece is all taken — ask someone to free it up", 409);
+      return jsonError("This piece is unavailable", 409);
     }
   }
 

@@ -50,10 +50,10 @@ export function RotateKioskGate({ children }: { children: React.ReactNode }) {
           </div>
           <LegoLogo className="relative z-10 text-[clamp(2.2rem,8vw,4rem)] leading-none" />
           <h1 className="brand-title relative z-10 max-w-xl text-[clamp(1.6rem,5vw,2.6rem)]">
-            Rotate the kiosk
+            Rotate to portrait
           </h1>
           <p className="soft-copy relative z-10 max-w-md text-[clamp(1.1rem,3vw,1.35rem)]">
-            This app works upright on the iPad. Turn it to portrait to keep playing.
+            This app requires portrait orientation.
           </p>
         </div>
       )}

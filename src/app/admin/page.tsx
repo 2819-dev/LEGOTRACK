@@ -170,7 +170,7 @@ export default function AdminPage() {
           setTab("sets");
         } else {
           setScanPreview(data.pieces || []);
-          setMsg(data.note || "Split into separate pieces.");
+          setMsg(data.note || "Pieces saved.");
         }
         loadAll();
       } finally {
@@ -285,7 +285,7 @@ export default function AdminPage() {
   }
 
   async function deleteUser(id: string, name: string) {
-    if (!window.confirm(`Delete ${name}? Their builds and ownership will be removed.`)) return;
+    if (!window.confirm(`Delete ${name}? Builds and ownership will be removed.`)) return;
     setBusy(true);
     setMsg("");
     const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
@@ -313,7 +313,7 @@ export default function AdminPage() {
       setMsg(data.error || "Could not switch");
       return;
     }
-    setMsg(`Now using as ${name}`);
+    setMsg(`Signed in as ${name}`);
     router.push("/home");
   }
 
@@ -400,14 +400,14 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setMsg(data.error || "Could not update Access Denied");
+        setMsg(data.error || "Could not update access gate");
         return;
       }
       setAccessGateEnabled(Boolean(data.accessGateEnabled));
       setMsg(
         data.accessGateEnabled
-          ? "Access Denied is ON — phones and iPhones see the block page."
-          : "Access Denied is OFF — phones and iPhones can use the app."
+          ? "Access gate enabled."
+          : "Access gate disabled."
       );
     } finally {
       setGateBusy(false);
@@ -424,9 +424,9 @@ export default function AdminPage() {
   return (
     <AppShell user={user} isAdmin canAdmin actingAs={actingAs} mustChangePassword={false}>
       <section className="panel">
-        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Admin panel</h1>
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Admin</h1>
         <p className="soft-copy mt-3">
-          Scan pieces and sets, manage everyone (including you), review builds, edit rules.
+          Scan inventory, manage users, review builds, and edit rules.
         </p>
         <button
           type="button"
@@ -434,7 +434,7 @@ export default function AdminPage() {
           disabled={busy}
           onClick={playAsPlayer}
         >
-          Use as a normal player
+          Switch to player mode
         </button>
       </section>
 
@@ -442,11 +442,11 @@ export default function AdminPage() {
 
       <section className="panel flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="brand-title text-[clamp(1.2rem,3.2vw,1.5rem)]">Access Denied page</h2>
+          <h2 className="brand-title text-[clamp(1.2rem,3.2vw,1.5rem)]">Access gate</h2>
           <p className="soft-copy mt-1.5 text-[0.95rem]">
             {accessGateEnabled
-              ? "On — only the kiosk iPad (and admin login) can get in."
-              : "Off — phones and iPhones can go on for now."}
+              ? "On — only the kiosk and admin accounts can sign in."
+              : "Off — all devices can sign in."}
           </p>
         </div>
         <button
@@ -494,9 +494,7 @@ export default function AdminPage() {
           <div>
             <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Scan</h2>
             <p className="soft-copy mt-2 text-[1rem]">
-              Lay shirts, pants, helmets, or hair on a plain floor with gaps between them. We
-              identify each real LEGO part and save the clean catalog render — never the dirty
-              floor photo.
+              Place pieces on a plain floor with space between them, then take a photo.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -507,8 +505,8 @@ export default function AdminPage() {
                 scanMode === "pieces" ? "bg-black text-white" : "bg-white"
               }`}
             >
-              Floor pieces
-              <span className="mt-1 text-[11px] font-bold opacity-70">Many at once · auto qty</span>
+              Pieces
+              <span className="mt-1 text-[11px] font-bold opacity-70">Multiple</span>
             </button>
             <button
               type="button"
@@ -517,15 +515,15 @@ export default function AdminPage() {
                 scanMode === "set" ? "bg-black text-white" : "bg-white"
               }`}
             >
-              City set
-              <span className="mt-1 text-[11px] font-bold opacity-70">Official / approved</span>
+              Set
+              <span className="mt-1 text-[11px] font-bold opacity-70">Catalog</span>
             </button>
           </div>
 
           {scanMode === "set" && (
             <input
               className="field"
-              placeholder="Set name (e.g. Fire Station)"
+              placeholder="Set name"
               value={setName}
               onChange={(e) => setSetName(e.target.value)}
             />
@@ -534,9 +532,9 @@ export default function AdminPage() {
           <label className={`file-btn min-h-[4.5rem] text-lg ${busy ? "opacity-50" : ""}`}>
             {busy
               ? scanMode === "pieces"
-                ? "Finding pieces…"
-                : "Saving set…"
-              : "Take or pick a photo"}
+                ? "Scanning…"
+                : "Saving…"
+              : "Add photo"}
             <input
               type="file"
               accept="image/*"
@@ -548,7 +546,7 @@ export default function AdminPage() {
 
           {scanMode === "pieces" && scanPreview.length > 0 && (
             <div>
-              <h3 className="mb-3 text-lg font-extrabold">Just found — fix labels if needed</h3>
+              <h3 className="mb-3 text-lg font-extrabold">Scan results</h3>
               <div className="grid grid-cols-2 gap-3">
                 {scanPreview.map((p) => (
                   <div key={p.id} className="tile space-y-2 p-3">
@@ -599,10 +597,10 @@ export default function AdminPage() {
             Piece library ({pieces.length})
           </h2>
           <p className="soft-copy">
-            Everything in stock — change category, set quantity, or remove a piece.
+            Edit category, quantity, or remove pieces.
           </p>
           {pieces.length === 0 && (
-            <p className="soft-copy text-center">No pieces yet — scan a floor photo first.</p>
+            <p className="soft-copy text-center">No pieces yet.</p>
           )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {pieces.map((p) => (
@@ -651,10 +649,10 @@ export default function AdminPage() {
       {tab === "sets" && (
         <section className="stack">
           <p className="soft-copy">
-            Approved sets in the city. Assign an owner so everyone knows who has it.
+            Assign an owner to each set.
           </p>
           {catalog.length === 0 && (
-            <p className="soft-copy text-center">No sets yet — scan one from the Scan tab.</p>
+            <p className="soft-copy text-center">No sets yet.</p>
           )}
           {catalog.map((s) => (
             <article key={s.id} className="panel space-y-3">
@@ -695,7 +693,7 @@ export default function AdminPage() {
       {tab === "users" && (
         <section className="stack">
           <div className="panel space-y-4">
-            <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Add person</h2>
+            <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Add user</h2>
             <input
               className="field"
               placeholder="Name"
@@ -704,7 +702,7 @@ export default function AdminPage() {
             />
             <input
               className="field"
-              placeholder="Starter password"
+              placeholder="Password"
               value={newPass}
               onChange={(e) => setNewPass(e.target.value)}
             />
@@ -717,7 +715,7 @@ export default function AdminPage() {
               <option value="admin">Admin</option>
             </select>
             <p className="text-sm font-bold text-black/55">
-              Players get this starter password and must pick a new one on first sign-in.
+              New players must change their password on first sign-in.
             </p>
             <button
               type="button"
@@ -736,7 +734,7 @@ export default function AdminPage() {
               <article key={u.id} className="panel space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-extrabold text-black/55">
-                    {u.avatar_complete ? "Avatar ready" : "No avatar"}
+                    {u.avatar_complete ? "Avatar complete" : "No avatar"}
                     {isSelf ? " · you" : ""}
                   </p>
                   {isSelf ? (
@@ -746,7 +744,7 @@ export default function AdminPage() {
                       disabled={busy}
                       onClick={playAsPlayer}
                     >
-                      Use as player
+                      Player mode
                     </button>
                   ) : (
                     <button
@@ -755,7 +753,7 @@ export default function AdminPage() {
                       disabled={busy}
                       onClick={() => actAsUser(u.id, u.name)}
                     >
-                      Use as them
+                      Sign in as
                     </button>
                   )}
                 </div>
@@ -771,7 +769,7 @@ export default function AdminPage() {
                   Job
                   <input
                     className="field mt-2"
-                    placeholder="Builder, mayor, road maker…"
+                    placeholder="Job title"
                     value={d.job}
                     onChange={(e) => setDraft(u.id, { job: e.target.value })}
                   />
@@ -799,7 +797,7 @@ export default function AdminPage() {
                 </label>
                 {u.must_change_password ? (
                   <p className="text-sm font-bold text-black/55">
-                    Will be asked to change this on next sign-in.
+                    Password change required on next sign-in.
                   </p>
                 ) : null}
                 <div className="grid grid-cols-2 gap-3">
@@ -852,7 +850,7 @@ export default function AdminPage() {
                     type="button"
                     className="lego-btn lego-btn-green text-[clamp(0.95rem,2.2vw,1.2rem)]"
                     onClick={() =>
-                      review(b.id, "approved", "Approved — now tracked under this owner in the city.")
+                      review(b.id, "approved", "Approved.")
                     }
                   >
                     Approve
@@ -861,11 +859,7 @@ export default function AdminPage() {
                     type="button"
                     className="lego-btn lego-btn-red text-[clamp(0.95rem,2.2vw,1.2rem)]"
                     onClick={() =>
-                      review(
-                        b.id,
-                        "rejected",
-                        "Scale or realism issue — cars must fit the roads; houses need real openings."
-                      )
+                      review(b.id, "rejected", "Rejected.")
                     }
                   >
                     Reject

@@ -49,10 +49,8 @@ export default function StandardsPage() {
   return (
     <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
-        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Community rules</h1>
-        <p className="soft-copy mt-3">
-          We want a city that feels real — without requiring every brick detail.
-        </p>
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Rules</h1>
+        <p className="soft-copy mt-3">City building standards.</p>
       </section>
 
       <div className="stack">

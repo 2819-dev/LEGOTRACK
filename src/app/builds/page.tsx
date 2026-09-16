@@ -74,7 +74,7 @@ export default function BuildsPage() {
     setTitle("");
     setDescription("");
     setImage("");
-    setMsg("Submitted for review!");
+    setMsg("Submitted for review.");
     refresh();
   }
 
@@ -84,9 +84,7 @@ export default function BuildsPage() {
     <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel space-y-4">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Submit a build</h1>
-        <p className="soft-copy">
-          Photo your house, car, or street. Admins review against community standards.
-        </p>
+        <p className="soft-copy">Upload a photo for admin review.</p>
         <input
           className="field"
           placeholder="Build title"
@@ -100,7 +98,7 @@ export default function BuildsPage() {
           onChange={(e) => setDescription(e.target.value)}
         />
         <label className="file-btn">
-          {image ? "Change photo" : "Take or pick a photo"}
+          {image ? "Change photo" : "Add photo"}
           <input
             type="file"
             accept="image/*"
@@ -125,7 +123,7 @@ export default function BuildsPage() {
       <section className="space-y-4">
         <h2 className="brand-title text-[clamp(1.5rem,4vw,2rem)]">Your submissions</h2>
         {builds.length === 0 && (
-          <p className="soft-copy text-center">None yet — snap a build and send it in!</p>
+          <p className="soft-copy text-center">No submissions yet.</p>
         )}
         {builds.map((b) => (
           <article key={b.id} className="panel space-y-3">

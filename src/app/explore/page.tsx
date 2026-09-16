@@ -60,9 +60,7 @@ export default function ExplorePage() {
     <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Explore</h1>
-        <p className="soft-copy mt-3">
-          Browse everything in the city — tap a piece to see who owns it and who built it.
-        </p>
+        <p className="soft-copy mt-3">City inventory by type.</p>
       </section>
 
       <div className="flex gap-2.5 overflow-x-auto pb-1">
@@ -79,7 +77,7 @@ export default function ExplorePage() {
       </div>
 
       {shown.length === 0 && (
-        <p className="soft-copy text-center">Nothing in the city yet. Approve some builds!</p>
+        <p className="soft-copy text-center">No items yet.</p>
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -150,7 +148,7 @@ export default function ExplorePage() {
                 ) : (
                   <p className="text-base font-extrabold">
                     {selected.owner_name}
-                    <span className="text-sm font-bold text-black/50"> (catalog / assigned)</span>
+                    <span className="text-sm font-bold text-black/50"> (assigned)</span>
                   </p>
                 )}
               </div>

@@ -10,7 +10,7 @@ const links = [
   { href: "/explore", label: "Explore" },
   { href: "/people", label: "People" },
   { href: "/builds", label: "Builds" },
-  { href: "/avatar", label: "Me" },
+  { href: "/avatar", label: "Avatar" },
 ];
 
 export function AppShell({
@@ -70,7 +70,7 @@ export function AppShell({
     >
       {actingAs && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border-3 border-black bg-[#7dd3fc] px-3 py-2.5">
-          <p className="text-sm font-extrabold">Using as {actingAs.name}</p>
+          <p className="text-sm font-extrabold">Signed in as {actingAs.name}</p>
           <button type="button" onClick={stopActingAs} className="chip min-h-10 bg-white px-3 text-sm">
             Stop
           </button>
@@ -79,7 +79,7 @@ export function AppShell({
 
       {playerMode && canAdmin && !actingAs && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border-3 border-black bg-[#bbf7d0] px-3 py-2.5">
-          <p className="text-sm font-extrabold">Playing as a normal user</p>
+          <p className="text-sm font-extrabold">Player mode</p>
           <button type="button" onClick={stopPlayerMode} className="chip min-h-10 bg-white px-3 text-sm">
             Admin
           </button>
@@ -93,7 +93,7 @@ export function AppShell({
               compact
               className="block text-left text-[clamp(1.25rem,3.8vw,1.65rem)] leading-none"
             />
-            <p className="mt-1 text-sm font-extrabold text-black/65">Hi, {user.name}</p>
+            <p className="mt-1 text-sm font-extrabold text-black/65">{user.name}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {isAdmin && (

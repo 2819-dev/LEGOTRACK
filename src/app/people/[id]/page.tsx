@@ -93,7 +93,7 @@ export default function PersonProfilePage() {
         <div className="min-w-0 flex-1">
           <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">{person.name}</h1>
           <p className="mt-2 rounded-full border-3 border-black bg-[var(--brick-yellow)] px-4 py-2 text-base font-extrabold inline-block">
-            {person.job || "No job yet"}
+            {person.job || "No job"}
           </p>
           <p className="soft-copy mt-3 text-[1rem]">
             Owns {owns.length} · Built {builds.length}
@@ -120,7 +120,7 @@ export default function PersonProfilePage() {
 
       {list.length === 0 && (
         <p className="soft-copy text-center">
-          {tab === "owns" ? "Nothing owned yet." : "No approved builds yet."}
+          {tab === "owns" ? "No items." : "No builds."}
         </p>
       )}
 

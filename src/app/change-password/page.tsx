@@ -78,10 +78,9 @@ export default function ChangePasswordPage() {
         <LegoLogo className="text-[clamp(2.8rem,11vw,4.4rem)] leading-none" />
       </h1>
       <div className="panel mx-auto mt-10 w-full max-w-md space-y-5">
-        <h2 className="brand-title text-[clamp(1.7rem,5.5vw,2.3rem)]">Pick a new password</h2>
+        <h2 className="brand-title text-[clamp(1.7rem,5.5vw,2.3rem)]">Change password</h2>
         <p className="soft-copy">
-          Hi {name} — an admin set your starter password. Choose one only you know before you keep
-          playing.
+          Set a new password for {name}.
         </p>
         <label className="block text-base font-extrabold">
           New password
@@ -115,7 +114,7 @@ export default function ChangePasswordPage() {
           disabled={busy}
           onClick={submit}
         >
-          {busy ? "…" : "Save & continue"}
+          {busy ? "…" : "Save"}
         </button>
       </div>
     </main>

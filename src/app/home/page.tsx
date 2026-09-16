@@ -46,16 +46,16 @@ export default function HomePage() {
   return (
     <AppShell user={me.user} isAdmin={Boolean(me.isAdmin)} canAdmin={Boolean(me.canAdmin)} playerMode={Boolean(me.playerMode)} actingAs={me.actingAs || null} mustChangePassword={Boolean(me.mustChangePassword)}>
       <section className="panel">
-        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">City desk</h1>
+        <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Home</h1>
         <p className="soft-copy mt-3">
-          Check the rules, build to scale, and keep track of what you own in the city.
+          Rules, inventory, and builds for the city.
         </p>
         {!me.avatarComplete && (
           <Link
             href="/avatar?onboarding=1"
             className="lego-btn lego-btn-yellow mt-5 w-full text-center text-[clamp(1rem,2.4vw,1.25rem)]"
           >
-            Finish your minifig
+            Complete your avatar
           </Link>
         )}
       </section>
@@ -63,9 +63,9 @@ export default function HomePage() {
       {mine.length > 0 && (
         <section className="panel">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Your stuff</h2>
+            <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Your items</h2>
             <Link href="/city" className="chip min-h-11 bg-[#dbeafe] px-3 text-sm">
-              See everyone
+              All owners
             </Link>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1">
@@ -82,34 +82,24 @@ export default function HomePage() {
 
       <div className="stack">
         <Link href="/explore" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Explore the city</h2>
-          <p className="soft-copy mt-2">
-            Browse every building, car, and set — see who owns it and who built it.
-          </p>
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Explore</h2>
+          <p className="soft-copy mt-2">Buildings, vehicles, and sets.</p>
         </Link>
         <Link href="/people" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Meet people</h2>
-          <p className="soft-copy mt-2">
-            See minifigs, jobs, and what each person owns or built.
-          </p>
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">People</h2>
+          <p className="soft-copy mt-2">Profiles, jobs, and ownership.</p>
         </Link>
         <Link href="/builds" className="panel block transition-transform active:translate-y-0.5">
           <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Submit a build</h2>
-          <p className="soft-copy mt-2">
-            Photo it, send it in, get it approved for the city.
-          </p>
+          <p className="soft-copy mt-2">Submit a photo for review.</p>
         </Link>
         <Link href="/standards" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Community rules</h2>
-          <p className="soft-copy mt-2">
-            Cars must fit the roads. Houses must look like houses.
-          </p>
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Rules</h2>
+          <p className="soft-copy mt-2">City building standards.</p>
         </Link>
         <Link href="/avatar" className="panel block transition-transform active:translate-y-0.5">
-          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Avatar builder</h2>
-          <p className="soft-copy mt-2">
-            Mix real scanned hair, heads, shirts, and pants.
-          </p>
+          <h2 className="brand-title text-[clamp(1.4rem,4vw,1.85rem)]">Avatar</h2>
+          <p className="soft-copy mt-2">Choose your minifig pieces.</p>
         </Link>
       </div>
     </AppShell>

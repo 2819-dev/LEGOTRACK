@@ -175,7 +175,7 @@ export default function AvatarClient() {
     });
     const data = await res.json();
     if (!res.ok) {
-      setMsg(data.error || "Could not ask");
+      setMsg(data.error || "Could not request");
       return;
     }
     setMsg(data.note || "Request sent");
@@ -193,7 +193,7 @@ export default function AvatarClient() {
       setMsg(data.error || "Could not update request");
       return;
     }
-    setMsg(data.note || (action === "approve" ? "Piece freed" : "Declined"));
+    setMsg(data.note || (action === "approve" ? "Approved" : "Declined"));
     await reloadPiecesAndRequests();
   }
 
@@ -239,10 +239,10 @@ export default function AvatarClient() {
     >
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">
-          {onboarding ? "Build your minifig" : "Me"}
+          {onboarding ? "Create avatar" : "Account"}
         </h1>
         <p className="soft-copy mt-3">
-          Spin the official LEGO catalog part. Free stock is up top; taken pieces sink to the bottom.
+          Available pieces are listed first. Taken pieces appear below.
         </p>
       </section>
 
@@ -258,7 +258,7 @@ export default function AvatarClient() {
                   {r.from_name} wants your {r.piece_label || r.category}
                 </p>
                 <p className="text-xs font-bold text-black/55">
-                  Approve to free it — then tweak your avatar.
+                  Approving releases this piece from your avatar.
                 </p>
               </div>
               <div className="flex flex-col gap-2">
@@ -267,14 +267,14 @@ export default function AvatarClient() {
                   className="chip min-h-10 bg-[#bbf7d0] px-3 text-xs"
                   onClick={() => handleRequest(r.id, "approve")}
                 >
-                  Free it
+                  Approve
                 </button>
                 <button
                   type="button"
                   className="chip min-h-10 bg-[#fecaca] px-3 text-xs"
                   onClick={() => handleRequest(r.id, "decline")}
                 >
-                  Nope
+                  Decline
                 </button>
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function AvatarClient() {
             Job
             <input
               className="field mt-2"
-              placeholder="Builder, mayor…"
+              placeholder="Job title"
               value={jobDraft}
               onChange={(e) => setJobDraft(e.target.value)}
             />
@@ -319,7 +319,7 @@ export default function AvatarClient() {
             <input
               className="field mt-2"
               type="password"
-              placeholder="Leave blank to keep"
+              placeholder="Optional"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
@@ -347,9 +347,9 @@ export default function AvatarClient() {
           size="lg"
         />
         <div className="w-full flex-1 space-y-3">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Your character</h2>
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Avatar</h2>
           <p className="soft-copy">
-            One assembled minifig — helmet or hair on top, then head, shirt, pants.
+            Helmet or hair, head, shirt, and pants.
           </p>
           {previewPiece && (
             <PieceOrbit
@@ -378,7 +378,7 @@ export default function AvatarClient() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {byTab.length === 0 && (
           <p className="soft-copy col-span-full text-center">
-            No {tab} pieces in stock yet. Admin can scan a floor photo of many at once.
+            No {tab} pieces available.
           </p>
         )}
         {byTab.map((p) => {
@@ -404,7 +404,7 @@ export default function AvatarClient() {
                 <p className="text-[11px] font-bold text-black/55">
                   {p.isTaken
                     ? "Taken"
-                    : `${p.available} free · ${p.quantity} total`}
+                    : `${p.available} available · ${p.quantity} total`}
                 </p>
               </button>
               {p.isTaken && (
@@ -413,7 +413,7 @@ export default function AvatarClient() {
                   className="chip mt-2 min-h-10 w-full bg-[var(--brick-yellow)] text-xs"
                   onClick={() => requestPiece(p)}
                 >
-                  Ask to use it
+                  Request
                 </button>
               )}
             </div>
