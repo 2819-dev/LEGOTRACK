@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   isAdminAllowedPath,
   isIPad9FamilyKiosk,
+  isPublicPath,
 } from "@/lib/device";
 import { LegoLogo } from "@/components/LegoLogo";
 
@@ -19,7 +20,13 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function resolve() {
-      // Admin auth / admin panel always reachable so login and the gate toggle work off-kiosk
+      // Splash + auth stay reachable so people can sign in when the gate is on.
+      if (isPublicPath(pathname)) {
+        if (!cancelled) setMode(isAdminAllowedPath(pathname) ? "admin-phone" : "ok");
+        return;
+      }
+
+      // Admin panel always reachable so the gate toggle works off-kiosk
       if (isAdminAllowedPath(pathname)) {
         if (!cancelled) setMode("admin-phone");
         return;

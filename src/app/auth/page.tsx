@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { isIPad9FamilyKiosk } from "@/lib/device";
 import { LegoLogo } from "@/components/LegoLogo";
 
 type Mode = "pick" | "login" | "register";
 
-export default function AuthPage() {
+function AuthForm() {
   const router = useRouter();
+  const search = useSearchParams();
   const [mode, setMode] = useState<Mode>("pick");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [kiosk, setKiosk] = useState(false);
@@ -25,43 +24,15 @@ export default function AuthPage() {
       .catch(() => setGateOn(false));
   }, []);
 
+  useEffect(() => {
+    const qMode = search.get("mode");
+    const qError = search.get("error");
+    if (qMode === "login" || qMode === "register") setMode(qMode);
+    if (qError) setError(qError);
+  }, [search]);
+
   const openSignup = !gateOn || kiosk;
   const openPlayerLogin = !gateOn || kiosk;
-
-  async function submit() {
-    if (mode === "register" && !openSignup) {
-      setError("Registration is closed on this device");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        cache: "no-store",
-        body: JSON.stringify({ name, password, kiosk }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong");
-        setBusy(false);
-        return;
-      }
-      // Hard navigation so the session cookie is always sent on the next request
-      // (soft router.push can race ahead of Set-Cookie on Netlify).
-      let next = "/home";
-      if (data.mustChangePassword) next = "/change-password";
-      else if (data.role === "admin") next = "/admin";
-      else if (mode === "register" || data.needsAvatar) next = "/avatar?onboarding=1";
-      window.location.assign(next);
-    } catch {
-      setError("Network error");
-      setBusy(false);
-    }
-  }
 
   return (
     <main className="page-wrap flex min-h-dvh flex-col justify-center py-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
@@ -77,12 +48,22 @@ export default function AuthPage() {
           <button
             type="button"
             className="lego-btn lego-btn-yellow w-full"
-            onClick={() => setMode("login")}
+            onClick={() => {
+              setError("");
+              setMode("login");
+            }}
           >
             Log in
           </button>
           {openSignup && (
-            <button type="button" className="lego-btn w-full" onClick={() => setMode("register")}>
+            <button
+              type="button"
+              className="lego-btn w-full"
+              onClick={() => {
+                setError("");
+                setMode("register");
+              }}
+            >
               Create account
             </button>
           )}
@@ -97,7 +78,13 @@ export default function AuthPage() {
       )}
 
       {(mode === "login" || (mode === "register" && openSignup)) && (
-        <div className="panel mx-auto mt-10 w-full max-w-md space-y-5">
+        <form
+          className="panel mx-auto mt-10 w-full max-w-md space-y-5"
+          method="post"
+          action={mode === "login" ? "/api/auth/login" : "/api/auth/register"}
+          onSubmit={() => setBusy(true)}
+        >
+          <input type="hidden" name="kiosk" value={kiosk ? "1" : "0"} />
           <h2 className="brand-title text-[clamp(1.7rem,5.5vw,2.3rem)]">
             {mode === "login"
               ? openPlayerLogin
@@ -109,43 +96,55 @@ export default function AuthPage() {
             Name
             <input
               className="field mt-2"
-              value={name}
+              name="name"
+              required
               autoComplete="username"
               enterKeyHint="next"
-              onChange={(e) => setName(e.target.value)}
             />
           </label>
           <label className="block text-base font-extrabold">
             Password
             <input
               className="field mt-2"
+              name="password"
               type="password"
-              value={password}
+              required
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               enterKeyHint="go"
-              onChange={(e) => setPassword(e.target.value)}
             />
           </label>
           {error && (
             <p className="text-base font-extrabold text-[var(--brick-red)]">{error}</p>
           )}
           <button
-            type="button"
+            type="submit"
             className="lego-btn lego-btn-yellow w-full"
             disabled={busy}
-            onClick={submit}
           >
             {busy ? "…" : "Continue"}
           </button>
           <button
             type="button"
             className="min-h-12 w-full text-base font-extrabold underline"
-            onClick={() => setMode("pick")}
+            onClick={() => {
+              setError("");
+              setMode("pick");
+            }}
           >
             Back
           </button>
-        </div>
+        </form>
       )}
     </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={<main className="loading-screen">Loading…</main>}
+    >
+      <AuthForm />
+    </Suspense>
   );
 }

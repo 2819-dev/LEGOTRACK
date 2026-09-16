@@ -32,6 +32,9 @@ const RAY_COLORS = [
   "#000000",
 ];
 
+const FADE_MS = 900;
+const HOLD_MS = 4200;
+
 function RayBurst() {
   const cx = 50;
   const cy = 50;
@@ -77,32 +80,53 @@ function RayBurst() {
 
 export function SplashScreen() {
   const router = useRouter();
+  // Two stable layers: swap which is visible with a real crossfade.
+  const [layerA, setLayerA] = useState(0);
+  const [layerB, setLayerB] = useState(1);
+  const [showA, setShowA] = useState(true);
+  const showARef = useRef(true);
   const indexRef = useRef(0);
-  const [current, setCurrent] = useState(0);
-  const [next, setNext] = useState(0);
-  const [crossfading, setCrossfading] = useState(false);
+  const fadingRef = useRef(false);
 
   useEffect(() => {
     if (OFFICIAL_SETS.length < 2) return;
 
     let fadeTimer: number | undefined;
     const interval = window.setInterval(() => {
+      if (fadingRef.current) return;
+      fadingRef.current = true;
+
       const cur = indexRef.current;
       const nxt = (cur + 1) % OFFICIAL_SETS.length;
-      setNext(nxt);
-      setCrossfading(true);
-      fadeTimer = window.setTimeout(() => {
-        indexRef.current = nxt;
-        setCurrent(nxt);
-        setCrossfading(false);
-      }, 750);
-    }, 4200);
+
+      // Load the next image into the hidden layer first (still opacity 0).
+      if (showARef.current) {
+        setLayerB(nxt);
+      } else {
+        setLayerA(nxt);
+      }
+
+      // Next frame: start the crossfade so opacity actually transitions.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          showARef.current = !showARef.current;
+          setShowA(showARef.current);
+          fadeTimer = window.setTimeout(() => {
+            indexRef.current = nxt;
+            fadingRef.current = false;
+          }, FADE_MS);
+        });
+      });
+    }, HOLD_MS);
 
     return () => {
       window.clearInterval(interval);
       if (fadeTimer) window.clearTimeout(fadeTimer);
     };
   }, []);
+
+  const imgClass =
+    "absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.22)] transition-opacity ease-in-out";
 
   return (
     <main className="splash relative flex min-h-dvh flex-col items-center overflow-hidden px-[max(1.5rem,env(safe-area-inset-left))] pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
@@ -120,22 +144,22 @@ export function SplashScreen() {
       <div className="relative z-20 mt-6 flex w-full max-w-[40rem] flex-1 items-center justify-center">
         <div className="relative h-[min(46dvh,420px)] w-full">
           <Image
-            src={OFFICIAL_SETS[current]}
+            src={OFFICIAL_SETS[layerA]}
             alt=""
             width={1100}
             height={900}
             priority
-            className="absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.22)]"
+            className={`${imgClass} ${showA ? "opacity-100" : "opacity-0"}`}
+            style={{ transitionDuration: `${FADE_MS}ms` }}
           />
           <Image
-            src={OFFICIAL_SETS[next]}
-            alt="Lego set"
+            src={OFFICIAL_SETS[layerB]}
+            alt=""
             width={1100}
             height={900}
             priority
-            className={`absolute inset-0 m-auto max-h-full max-w-full object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.22)] transition-opacity duration-700 ease-in-out ${
-              crossfading ? "opacity-100" : "opacity-0"
-            }`}
+            className={`${imgClass} ${showA ? "opacity-0" : "opacity-100"}`}
+            style={{ transitionDuration: `${FADE_MS}ms` }}
           />
         </div>
       </div>

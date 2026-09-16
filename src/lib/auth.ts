@@ -1,11 +1,14 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSql, type UserRow } from "./db";
 
-const COOKIE = "legotrack_session";
-const ACT_AS_COOKIE = "legotrack_act_as";
-const PLAYER_MODE_COOKIE = "legotrack_player_mode";
+export const SESSION_COOKIE = "legotrack_session";
+export const ACT_AS_COOKIE = "legotrack_act_as";
+export const PLAYER_MODE_COOKIE = "legotrack_player_mode";
+
+const COOKIE = SESSION_COOKIE;
 
 function secretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -37,28 +40,6 @@ function cookieOpts(maxAge: number) {
   };
 }
 
-function serializeCookie(name: string, value: string, maxAge: number) {
-  const parts = [
-    `${name}=${value}`,
-    "Path=/",
-    `Max-Age=${maxAge}`,
-    "HttpOnly",
-    "SameSite=Lax",
-  ];
-  if (shouldSecureCookies()) parts.push("Secure");
-  return parts.join("; ");
-}
-
-function clearCookie(name: string) {
-  const parts = [`${name}=`, "Path=/", "Max-Age=0", "HttpOnly", "SameSite=Lax"];
-  if (shouldSecureCookies()) parts.push("Secure");
-  return parts.join("; ");
-}
-
-export function buildClearSessionCookies() {
-  return [clearCookie(COOKIE), clearCookie(ACT_AS_COOKIE), clearCookie(PLAYER_MODE_COOKIE)];
-}
-
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
 }
@@ -79,14 +60,23 @@ export async function createSessionToken(user: SessionUser) {
     .sign(secretKey());
 }
 
-/** Set-Cookie headers for a fresh login (Netlify-safe). */
-export async function buildSessionCookies(user: SessionUser) {
+/** Attach session cookies to a NextResponse (preferred on Netlify). */
+export async function attachSessionCookies(
+  res: NextResponse,
+  user: SessionUser
+) {
   const token = await createSessionToken(user);
-  return [
-    serializeCookie(COOKIE, token, 60 * 60 * 24 * 30),
-    clearCookie(ACT_AS_COOKIE),
-    clearCookie(PLAYER_MODE_COOKIE),
-  ];
+  res.cookies.set(COOKIE, token, cookieOpts(60 * 60 * 24 * 30));
+  res.cookies.set(ACT_AS_COOKIE, "", { ...cookieOpts(0), maxAge: 0 });
+  res.cookies.set(PLAYER_MODE_COOKIE, "", { ...cookieOpts(0), maxAge: 0 });
+  return res;
+}
+
+export function attachClearSessionCookies(res: NextResponse) {
+  res.cookies.set(COOKIE, "", { ...cookieOpts(0), maxAge: 0 });
+  res.cookies.set(ACT_AS_COOKIE, "", { ...cookieOpts(0), maxAge: 0 });
+  res.cookies.set(PLAYER_MODE_COOKIE, "", { ...cookieOpts(0), maxAge: 0 });
+  return res;
 }
 
 export async function createSession(user: SessionUser) {

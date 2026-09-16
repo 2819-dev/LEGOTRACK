@@ -1,30 +1,88 @@
+import { NextResponse } from "next/server";
 import {
-  buildSessionCookies,
+  attachSessionCookies,
   findUserByName,
   hashPassword,
 } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { isAccessGateEnabled } from "@/lib/settings";
-import { jsonError, jsonOkWithCookies } from "@/lib/api";
+import { jsonError } from "@/lib/api";
+
+function wantsForm(req: Request) {
+  const ct = req.headers.get("content-type") || "";
+  return (
+    ct.includes("application/x-www-form-urlencoded") ||
+    ct.includes("multipart/form-data")
+  );
+}
+
+function redirectTo(req: Request, path: string) {
+  return NextResponse.redirect(new URL(path, req.url), 303);
+}
 
 export async function POST(req: Request) {
+  const formMode = wantsForm(req);
   try {
-    const body = await req.json();
-    const name = String(body.name ?? "").trim();
-    const password = String(body.password ?? "");
-    const kiosk = body.kiosk === true;
-    const gateOn = await isAccessGateEnabled();
+    let name = "";
+    let password = "";
+    let kiosk = false;
 
-    // With gate on: new accounts only on the city iPad. Gate off: open signup.
+    if (formMode) {
+      const form = await req.formData();
+      name = String(form.get("name") ?? "").trim();
+      password = String(form.get("password") ?? "");
+      kiosk = String(form.get("kiosk") ?? "") === "1";
+    } else {
+      const body = await req.json();
+      name = String(body.name ?? "").trim();
+      password = String(body.password ?? "");
+      kiosk = body.kiosk === true;
+    }
+
+    const gateOn = await isAccessGateEnabled();
     if (gateOn && !kiosk) {
+      if (formMode) {
+        return redirectTo(
+          req,
+          "/auth?mode=register&error=" +
+            encodeURIComponent("Registration is closed on this device")
+        );
+      }
       return jsonError("Registration is closed on this device", 403);
     }
 
-    if (name.length < 2) return jsonError("Name must be at least 2 characters");
-    if (password.length < 3) return jsonError("Password must be at least 3 characters");
+    if (name.length < 2) {
+      if (formMode) {
+        return redirectTo(
+          req,
+          "/auth?mode=register&error=" +
+            encodeURIComponent("Name must be at least 2 characters")
+        );
+      }
+      return jsonError("Name must be at least 2 characters");
+    }
+    if (password.length < 3) {
+      if (formMode) {
+        return redirectTo(
+          req,
+          "/auth?mode=register&error=" +
+            encodeURIComponent("Password must be at least 3 characters")
+        );
+      }
+      return jsonError("Password must be at least 3 characters");
+    }
 
     const existing = await findUserByName(name);
-    if (existing) return jsonError("That name is already taken", 409);
+    if (existing) {
+      if (formMode) {
+        return redirectTo(
+          req,
+          "/auth?mode=register&error=" +
+            encodeURIComponent("That name is already taken")
+        );
+      }
+      return jsonError("That name is already taken", 409);
+    }
 
     const password_hash = await hashPassword(password);
     const sql = getSql();
@@ -38,17 +96,38 @@ export async function POST(req: Request) {
       INSERT INTO avatars (user_id) VALUES (${user.id})
       ON CONFLICT (user_id) DO NOTHING
     `;
-    const setCookies = await buildSessionCookies({
+
+    if (formMode) {
+      const res = redirectTo(req, "/avatar?onboarding=1");
+      await attachSessionCookies(res, {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      });
+      return res;
+    }
+
+    const res = NextResponse.json({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      needsAvatar: true,
+    });
+    await attachSessionCookies(res, {
       id: user.id,
       name: user.name,
       role: user.role,
     });
-    return jsonOkWithCookies(
-      { id: user.id, name: user.name, role: user.role, needsAvatar: true },
-      setCookies
-    );
+    return res;
   } catch (e) {
     console.error(e);
+    if (formMode) {
+      return redirectTo(
+        req,
+        "/auth?mode=register&error=" +
+          encodeURIComponent("Could not create account")
+      );
+    }
     return jsonError("Could not create account", 500);
   }
 }

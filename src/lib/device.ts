@@ -32,3 +32,12 @@ export function isAdminAllowedPath(pathname: string): boolean {
     pathname.startsWith("/admin/")
   );
 }
+
+/** Always reachable even when the Access Denied gate is on. */
+export function isPublicPath(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/")
+  );
+}

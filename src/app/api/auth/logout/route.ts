@@ -1,11 +1,12 @@
-import { destroySession, buildClearSessionCookies } from "@/lib/auth";
-import { jsonOkWithCookies } from "@/lib/api";
+import { NextResponse } from "next/server";
+import { attachClearSessionCookies, destroySession } from "@/lib/auth";
 
 export async function POST() {
   try {
     await destroySession();
   } catch {
-    // Still clear cookies via headers if jar delete fails
+    // Still clear cookies via response if jar delete fails
   }
-  return jsonOkWithCookies({ ok: true }, buildClearSessionCookies());
+  const res = NextResponse.json({ ok: true });
+  return attachClearSessionCookies(res);
 }
