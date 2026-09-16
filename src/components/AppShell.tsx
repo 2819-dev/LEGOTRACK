@@ -58,7 +58,10 @@ export function AppShell({
       <header className="sticky top-0 z-20 mt-1 rounded-xl border-3 border-black bg-[var(--brick-yellow)] px-4 py-3 shadow-[4px_4px_0_#111]">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <LegoLogo className="block text-left text-[clamp(1.25rem,3.8vw,1.65rem)] leading-none" />
+            <LegoLogo
+              compact
+              className="block text-left text-[clamp(1.25rem,3.8vw,1.65rem)] leading-none"
+            />
             <p className="mt-1 text-sm font-extrabold text-black/65">Hi, {user.name}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">

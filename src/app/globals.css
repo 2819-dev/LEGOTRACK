@@ -40,25 +40,71 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* LEGOTRACK wordmark */
+/* LEGOTRACK wordmark — yellow brick-sticker letters, staggered, not rainbow */
 .lego-logo {
   font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #111;
   text-align: center;
-  text-shadow: 3px 3px 0 #fff, 5px 5px 0 #111;
   line-height: 1;
 }
 
-.splash-title {
-  font-family: var(--font-brick), Impact, "Arial Black", sans-serif;
-  font-weight: 400;
+.lego-logo-brick {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.01em;
+  white-space: nowrap;
+  color: var(--brick-yellow);
+  -webkit-text-stroke: 0.055em #111;
+  paint-order: stroke fill;
+  text-shadow:
+    0.07em 0.07em 0 var(--brick-red),
+    0.11em 0.11em 0 #111;
+}
+
+.lego-logo-brick > span {
+  display: inline-block;
+  transform-origin: 50% 85%;
+  --tilt: 0deg;
+  --lift: 0px;
+  animation: brick-wobble 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.lego-logo-brick > span:nth-child(odd) {
+  --tilt: -3.5deg;
+  --lift: -0.05em;
+}
+
+.lego-logo-brick > span:nth-child(even) {
+  --tilt: 3deg;
+  --lift: 0.06em;
+}
+
+.lego-logo-brick.text-left,
+.lego-logo-brick.block {
+  justify-content: flex-start;
+}
+
+.lego-logo-compact {
   letter-spacing: 0.03em;
-  text-transform: uppercase;
   color: #111;
-  text-shadow: 3px 3px 0 #fff, 6px 6px 0 #111;
+  -webkit-text-stroke: 0;
+  text-shadow:
+    2px 2px 0 #fff,
+    4px 4px 0 var(--brick-red),
+    6px 6px 0 #111;
+}
+
+.lego-logo-compact > span {
+  animation: none;
+  transform: translateY(var(--lift)) rotate(var(--tilt));
+}
+
+.splash-title {
   animation: splash-pop 700ms cubic-bezier(0.34, 1.35, 0.64, 1) both;
 }
 
@@ -70,6 +116,16 @@ body {
   100% {
     transform: translateY(0) scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes brick-wobble {
+  0%,
+  100% {
+    transform: translateY(var(--lift)) rotate(var(--tilt));
+  }
+  50% {
+    transform: translateY(calc(var(--lift) - 0.07em)) rotate(calc(var(--tilt) * -0.7));
   }
 }
 
