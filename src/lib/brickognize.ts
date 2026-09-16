@@ -10,26 +10,92 @@ export type BrickMatch = {
   colorName: string | null;
 };
 
+export type BrickBBox = {
+  left: number;
+  upper: number;
+  right: number;
+  lower: number;
+  imageWidth: number;
+  imageHeight: number;
+  score: number;
+};
+
+type PredictItem = {
+  id: string;
+  name: string;
+  img_url: string;
+  category: string | null;
+  type: string;
+  score: number;
+};
+
 type PredictResponse = {
-  items?: Array<{
-    id: string;
-    name: string;
-    img_url: string;
-    category: string | null;
-    type: string;
+  listing_id?: string;
+  bounding_box?: {
+    left: number;
+    upper: number;
+    right: number;
+    lower: number;
+    image_width: number;
+    image_height: number;
     score: number;
-  }>;
+  };
+  items?: PredictItem[];
   colors?: Array<{ id: string; name: string; score: number }>;
 };
 
+function colorizedImgUrl(imgUrl: string, colorId: string | null) {
+  if (!colorId) return imgUrl;
+  const colored = imgUrl.replace(/\/(\d+)\.webp$/i, `/${colorId}.webp`);
+  if (colored !== imgUrl) return colored;
+  if (/\/[^/]+\.webp$/i.test(imgUrl)) {
+    return imgUrl.replace(/\/[^/]+\.webp$/i, `/${colorId}.webp`);
+  }
+  return imgUrl;
+}
+
+function toMatch(
+  item: PredictItem,
+  color: { id: string; name: string; score: number } | null
+): BrickMatch {
+  return {
+    partNum: item.id,
+    name: item.name,
+    categoryRaw: item.category || "",
+    imgUrl: colorizedImgUrl(item.img_url, color?.id ?? null),
+    score: item.score,
+    colorId: color?.id ?? null,
+    colorName: color?.name ?? null,
+  };
+}
+
+function pickMinifigItem(
+  items: PredictItem[],
+  bboxScore: number
+): PredictItem | null {
+  // Keep the bar high enough to avoid random wrong catalog parts.
+  const minScore = bboxScore >= 0.75 ? 0.28 : 0.34;
+  const ranked = items.filter((i) => i.score >= minScore);
+  for (const candidate of ranked) {
+    if (mapBrickCategory(candidate.category || "", candidate.name)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 /**
- * Identify a single LEGO piece crop via Brickognize and return the clean catalog render.
+ * Run Brickognize on an image. Returns the best minifig match + detection box.
  */
-export async function identifyLegoPart(imageBuf: Buffer): Promise<BrickMatch | null> {
+export async function predictLegoPart(imageBuf: Buffer): Promise<{
+  match: BrickMatch | null;
+  bbox: BrickBBox | null;
+}> {
   const jpeg = await sharp(imageBuf)
     .rotate()
-    .resize({ width: 640, height: 640, fit: "inside" })
-    .jpeg({ quality: 88 })
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    .resize({ width: 960, height: 960, fit: "inside" })
+    .jpeg({ quality: 90 })
     .toBuffer();
 
   const form = new FormData();
@@ -40,7 +106,7 @@ export async function identifyLegoPart(imageBuf: Buffer): Promise<BrickMatch | n
   );
 
   const url =
-    "https://api.brickognize.com/predict/parts/?predict_color=true&top_k_items=5&min_similarity_items=0.35";
+    "https://api.brickognize.com/predict/parts/?predict_color=true&top_k_items=8&min_similarity_items=0.18";
   const res = await fetch(url, {
     method: "POST",
     headers: { accept: "application/json" },
@@ -48,34 +114,42 @@ export async function identifyLegoPart(imageBuf: Buffer): Promise<BrickMatch | n
   });
   if (!res.ok) {
     console.error("Brickognize failed", res.status, await res.text());
-    return null;
+    return { match: null, bbox: null };
   }
+
   const data = (await res.json()) as PredictResponse;
-  const item = data.items?.[0];
-  if (!item || item.score < 0.38) return null;
+  const bb = data.bounding_box;
+  const bbox: BrickBBox | null = bb
+    ? {
+        left: bb.left,
+        upper: bb.upper,
+        right: bb.right,
+        lower: bb.lower,
+        imageWidth: bb.image_width,
+        imageHeight: bb.image_height,
+        score: bb.score,
+      }
+    : null;
 
-  // Prefer color-specific catalog thumbnail when Brickognize gives a color
   const color = data.colors?.[0] || null;
-  let imgUrl = item.img_url;
-  if (color?.id) {
-    const colored = item.img_url.replace(/\/(\d+)\.webp$/i, `/${color.id}.webp`);
-    // Only swap if pattern matched a color suffix
-    if (colored !== item.img_url || /\/\d+\.webp$/i.test(item.img_url)) {
-      imgUrl = colored.includes(`/${color.id}.webp`)
-        ? colored
-        : item.img_url.replace(/\/[^/]+\.webp$/i, `/${color.id}.webp`);
-    }
+  const item = pickMinifigItem(data.items || [], bbox?.score ?? 0);
+  if (!item) return { match: null, bbox };
+
+  // Weak part scores without a confident box are usually wrong.
+  if ((!bbox || bbox.score < 0.4) && item.score < 0.36) {
+    return { match: null, bbox };
+  }
+  if (item.score < 0.28) {
+    return { match: null, bbox };
   }
 
-  return {
-    partNum: item.id,
-    name: item.name,
-    categoryRaw: item.category || "",
-    imgUrl,
-    score: item.score,
-    colorId: color?.id ?? null,
-    colorName: color?.name ?? null,
-  };
+  return { match: toMatch(item, color), bbox };
+}
+
+/** Identify a single cropped piece (no bbox iteration). */
+export async function identifyLegoPart(imageBuf: Buffer): Promise<BrickMatch | null> {
+  const { match } = await predictLegoPart(imageBuf);
+  return match;
 }
 
 export async function fetchCatalogPng(imgUrl: string): Promise<Buffer | null> {
@@ -83,7 +157,18 @@ export async function fetchCatalogPng(imgUrl: string): Promise<Buffer | null> {
     const res = await fetch(imgUrl, {
       headers: { Accept: "image/webp,image/png,image/*" },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const base = imgUrl.replace(/\/\d+\.webp$/i, "/0.webp");
+      if (base !== imgUrl) {
+        const retry = await fetch(base, {
+          headers: { Accept: "image/webp,image/png,image/*" },
+        });
+        if (!retry.ok) return null;
+        const buf = Buffer.from(await retry.arrayBuffer());
+        return sharp(buf).ensureAlpha().png().toBuffer();
+      }
+      return null;
+    }
     const buf = Buffer.from(await res.arrayBuffer());
     return sharp(buf).ensureAlpha().png().toBuffer();
   } catch (e) {
@@ -96,18 +181,84 @@ export function mapBrickCategory(
   categoryRaw: string,
   name: string
 ): "helmet" | "hair" | "head" | "shirt" | "pants" | null {
-  const c = `${categoryRaw} ${name}`.toLowerCase();
-  if (c.includes("leg") || c.includes("hips")) return "pants";
-  if (c.includes("torso") || c.includes("body upper") || c.includes("shirt")) return "shirt";
-  if (c.includes("helmet") || c.includes("headgear") || c.includes("visor") || c.includes("mask")) {
+  const cat = categoryRaw.toLowerCase();
+  const nameL = name.toLowerCase();
+  const c = `${cat} ${nameL}`;
+
+  if (
+    /\b(plate|brick|tile|slope|technic|wheel|tyre|tire|baseplate|panel|wedge)\b/.test(
+      c
+    ) &&
+    !c.includes("minifig") &&
+    !c.includes("mini doll")
+  ) {
+    return null;
+  }
+
+  if (
+    cat.includes("leg") ||
+    nameL.includes("legs") ||
+    nameL.includes("hips and") ||
+    /\bhips\b/.test(nameL)
+  ) {
+    return "pants";
+  }
+  if (
+    cat.includes("torso") ||
+    nameL.includes("torso") ||
+    nameL.includes("body upper")
+  ) {
+    return "shirt";
+  }
+  if (
+    cat.includes("hair") ||
+    nameL.includes(" hair") ||
+    nameL.startsWith("hair") ||
+    nameL.includes("wig") ||
+    nameL.includes("ponytail")
+  ) {
+    return "hair";
+  }
+  if (
+    cat.includes("helmet") ||
+    cat.includes("headgear") ||
+    nameL.includes("helmet") ||
+    nameL.includes("headgear") ||
+    /\bcap\b/.test(nameL) ||
+    nameL.includes(" hat") ||
+    nameL.includes("hood") ||
+    nameL.includes("visor") ||
+    nameL.includes("mask") ||
+    nameL.includes("crown") ||
+    nameL.includes("turban")
+  ) {
     return "helmet";
   }
-  if (c.includes("hair") || c.includes("wig")) return "hair";
-  if (c.includes("head") || c.includes("face")) return "head";
-  // Ignore non-minifig bricks/plates/etc.
-  if (c.includes("minifig")) {
-    if (c.includes("utensil") || c.includes("weapon") || c.includes("accessory")) return null;
-    return "shirt";
+  if (
+    cat.includes("head") ||
+    (/\bhead\b/.test(nameL) && !nameL.includes("headlight"))
+  ) {
+    if (
+      c.includes("minifig") ||
+      cat.includes("minifig") ||
+      nameL.includes("minifig") ||
+      /\bhead\b/.test(nameL)
+    ) {
+      return "head";
+    }
+  }
+
+  if (c.includes("minifig") || c.includes("mini doll")) {
+    if (
+      c.includes("utensil") ||
+      c.includes("weapon") ||
+      c.includes("accessory") ||
+      c.includes("tool") ||
+      c.includes("food")
+    ) {
+      return null;
+    }
+    return null;
   }
   return null;
 }
