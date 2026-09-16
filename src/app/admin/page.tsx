@@ -19,6 +19,8 @@ type Piece = {
   category: string;
   label: string | null;
   image_data: string;
+  image_back?: string | null;
+  quantity?: number;
 };
 
 type Build = {
@@ -48,7 +50,7 @@ type CatalogSet = {
   owner_name: string | null;
 };
 
-const CATEGORIES = ["hair", "head", "shirt", "pants"] as const;
+const CATEGORIES = ["helmet", "hair", "head", "shirt", "pants"] as const;
 
 export default function AdminPage() {
   const router = useRouter();
@@ -57,7 +59,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"scan" | "sets" | "pieces" | "users" | "reviews" | "rules">(
     "scan"
   );
-  const [scanMode, setScanMode] = useState<"minifig" | "set">("minifig");
+  const [scanMode, setScanMode] = useState<"pieces" | "set">("pieces");
   const [setName, setSetName] = useState("");
   const [users, setUsers] = useState<UserRow[]>([]);
   const [builds, setBuilds] = useState<Build[]>([]);
@@ -180,6 +182,15 @@ export default function AdminPage() {
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  async function setPieceQuantity(id: string, quantity: number) {
+    await fetch("/api/admin/scan", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, quantity }),
+    });
+    loadAll();
   }
 
   async function reassign(id: string, category: string) {
@@ -484,19 +495,20 @@ export default function AdminPage() {
           <div>
             <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Scan</h2>
             <p className="soft-copy mt-2 text-[1rem]">
-              Big clear photo, plain background. Minifigs split into pieces; sets go to the catalog.
+              Lay out many shirts, pants, helmets, or full minifigs on a plain floor. One photo
+              finds them all, cuts the floor away, counts duplicates, and saves transparent pieces.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setScanMode("minifig")}
+              onClick={() => setScanMode("pieces")}
               className={`flex min-h-[4.5rem] flex-col items-center justify-center rounded-xl border-4 border-black px-2 text-center text-sm font-extrabold touch-manipulation sm:text-base ${
-                scanMode === "minifig" ? "bg-black text-white" : "bg-white"
+                scanMode === "pieces" ? "bg-black text-white" : "bg-white"
               }`}
             >
-              Minifig
-              <span className="mt-1 text-[11px] font-bold opacity-70">Hair · head · shirt · pants</span>
+              Floor pieces
+              <span className="mt-1 text-[11px] font-bold opacity-70">Many at once · auto qty</span>
             </button>
             <button
               type="button"
@@ -521,8 +533,8 @@ export default function AdminPage() {
 
           <label className={`file-btn min-h-[4.5rem] text-lg ${busy ? "opacity-50" : ""}`}>
             {busy
-              ? scanMode === "minifig"
-                ? "Splitting pieces…"
+              ? scanMode === "pieces"
+                ? "Finding pieces…"
                 : "Saving set…"
               : "Take or pick a photo"}
             <input
@@ -534,40 +546,49 @@ export default function AdminPage() {
             />
           </label>
 
-          {scanMode === "minifig" && (
-            <>
-              {scanPreview.length > 0 && (
-                <div>
-                  <h3 className="mb-3 text-lg font-extrabold">Just scanned — check labels</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {scanPreview.map((p) => (
-                      <div key={p.id} className="tile space-y-2 p-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={p.image_data} alt="" className="h-32 w-full object-contain" />
-                        <select
-                          className="field min-h-12 text-base capitalize"
-                          value={p.category}
-                          onChange={(e) => reassign(p.id, e.target.value)}
-                        >
-                          {CATEGORIES.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          className="chip min-h-10 w-full border-[var(--brick-red)] bg-[#fecaca] text-sm"
-                          onClick={() => deletePiece(p.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
+          {scanMode === "pieces" && scanPreview.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-lg font-extrabold">Just found — fix labels if needed</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {scanPreview.map((p) => (
+                  <div key={p.id} className="tile space-y-2 p-3">
+                    <div className="checker flex h-32 items-center justify-center rounded-xl">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.image_data} alt="" className="h-28 w-full object-contain" />
+                    </div>
+                    <select
+                      className="field min-h-12 text-base capitalize"
+                      value={p.category}
+                      onChange={(e) => reassign(p.id, e.target.value)}
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <label className="block text-xs font-extrabold uppercase text-black/55">
+                      Qty
+                      <input
+                        className="field mt-1 min-h-11"
+                        type="number"
+                        min={1}
+                        max={99}
+                        defaultValue={p.quantity || 1}
+                        onBlur={(e) => setPieceQuantity(p.id, Number(e.target.value) || 1)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="chip min-h-10 w-full border-[var(--brick-red)] bg-[#fecaca] text-sm"
+                      onClick={() => deletePiece(p.id)}
+                    >
+                      Delete
+                    </button>
                   </div>
-                </div>
-              )}
-            </>
+                ))}
+              </div>
+            </div>
           )}
         </section>
       )}
@@ -577,15 +598,20 @@ export default function AdminPage() {
           <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">
             Piece library ({pieces.length})
           </h2>
-          <p className="soft-copy">Edit category or delete any scanned minifig piece.</p>
+          <p className="soft-copy">
+            Everything in stock — change category, set quantity, or remove a piece.
+          </p>
           {pieces.length === 0 && (
-            <p className="soft-copy text-center">No pieces yet — scan a minifig first.</p>
+            <p className="soft-copy text-center">No pieces yet — scan a floor photo first.</p>
           )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {pieces.map((p) => (
               <div key={p.id} className="tile space-y-2 p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.image_data} alt="" className="h-28 w-full object-contain" />
+                <div className="checker flex h-28 items-center justify-center rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.image_data} alt="" className="h-24 w-full object-contain" />
+                </div>
+                <p className="truncate text-sm font-extrabold">{p.label || p.category}</p>
                 <select
                   className="field min-h-12 text-base capitalize"
                   value={p.category}
@@ -597,6 +623,17 @@ export default function AdminPage() {
                     </option>
                   ))}
                 </select>
+                <label className="block text-xs font-extrabold uppercase text-black/55">
+                  Qty
+                  <input
+                    className="field mt-1 min-h-11"
+                    type="number"
+                    min={1}
+                    max={99}
+                    defaultValue={p.quantity || 1}
+                    onBlur={(e) => setPieceQuantity(p.id, Number(e.target.value) || 1)}
+                  />
+                </label>
                 <button
                   type="button"
                   className="chip min-h-10 w-full border-[var(--brick-red)] bg-[#fecaca] text-sm"

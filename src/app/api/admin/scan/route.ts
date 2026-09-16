@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api";
-import { parseDataUrl, splitMinifigImage } from "@/lib/minifig-split";
+import { detectPiecesFromFloorPhoto, parseDataUrl } from "@/lib/piece-vision";
 import { compressDataUrl } from "@/lib/images";
 
 export async function POST(req: Request) {
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const admin = await requireAdmin();
     const body = await req.json();
     const image = String(body.image ?? "");
-    const mode = body.mode === "set" ? "set" : "minifig";
+    const mode = body.mode === "set" ? "set" : "pieces";
     if (!image) return jsonError("Image required");
 
     if (mode === "set") {
@@ -24,15 +24,15 @@ export async function POST(req: Request) {
       return jsonOk({
         mode: "set",
         set: rows[0],
-        note: "Approved set saved to the city catalog. Assign an owner from the Sets tab.",
+        note: "Set saved to the city catalog. Assign an owner from the Sets tab.",
       });
     }
 
     const buf = parseDataUrl(image);
-    const { originalDataUrl, pieces } = await splitMinifigImage(buf);
+    const { previewDataUrl, pieces, note } = await detectPiecesFromFloorPhoto(buf);
     const sql = getSql();
 
-    const compressedOriginal = await compressDataUrl(originalDataUrl, {
+    const compressedOriginal = await compressDataUrl(previewDataUrl, {
       maxWidth: 900,
       quality: 80,
     });
@@ -46,31 +46,66 @@ export async function POST(req: Request) {
 
     const saved = [];
     for (const piece of pieces) {
-      const compressed = await compressDataUrl(piece.imageDataUrl, {
-        maxWidth: 480,
-        quality: 82,
-      });
-      const rows = await sql`
-        INSERT INTO avatar_pieces (category, label, image_data, source_scan_id)
-        VALUES (${piece.category}, ${piece.category}, ${compressed}, ${scanId})
-        RETURNING id, category, label, image_data, source_scan_id, created_at
-      `;
-      saved.push(rows[0]);
+      // Merge into existing stock of same category + color when possible
+      const existing = piece.colorKey
+        ? await sql`
+            SELECT id, quantity FROM avatar_pieces
+            WHERE category = ${piece.category} AND color_key = ${piece.colorKey}
+            ORDER BY created_at ASC
+            LIMIT 1
+          `
+        : [];
+
+      if (existing[0]) {
+        const id = existing[0].id as string;
+        const nextQty = Number(existing[0].quantity || 1) + piece.quantity;
+        await sql`
+          UPDATE avatar_pieces
+          SET quantity = ${nextQty},
+              label = ${piece.label},
+              image_data = ${piece.imageDataUrl},
+              image_back = ${piece.imageBackDataUrl},
+              source_scan_id = ${scanId}
+          WHERE id = ${id}
+        `;
+        const rows = await sql`
+          SELECT id, category, label, image_data, image_back, color_key, quantity, source_scan_id, created_at
+          FROM avatar_pieces WHERE id = ${id}
+        `;
+        saved.push(rows[0]);
+      } else {
+        const rows = await sql`
+          INSERT INTO avatar_pieces (
+            category, label, image_data, image_back, color_key, quantity, source_scan_id
+          )
+          VALUES (
+            ${piece.category},
+            ${piece.label},
+            ${piece.imageDataUrl},
+            ${piece.imageBackDataUrl},
+            ${piece.colorKey},
+            ${piece.quantity},
+            ${scanId}
+          )
+          RETURNING id, category, label, image_data, image_back, color_key, quantity, source_scan_id, created_at
+        `;
+        saved.push(rows[0]);
+      }
     }
 
     return jsonOk({
-      mode: "minifig",
+      mode: "pieces",
       scanId,
       original: compressedOriginal,
       pieces: saved,
-      note: "Full minifigs are always saved as separate hair, head, shirt, and pants pieces.",
+      note,
     });
   } catch (e) {
     console.error(e);
     const msg = e instanceof Error ? e.message : "";
     if (msg === "UNAUTHORIZED") return jsonError("Unauthorized", 401);
     if (msg === "FORBIDDEN") return jsonError("Forbidden", 403);
-    return jsonError("Scan failed", 500);
+    return jsonError("Scan failed — try a clearer floor photo", 500);
   }
 }
 
@@ -79,19 +114,28 @@ export async function PATCH(req: Request) {
     await requireAdmin();
     const body = await req.json();
     const id = String(body.id ?? "");
-    const category = body.category as string;
+    const category = body.category as string | undefined;
     const label = body.label != null ? String(body.label) : null;
+    const quantity =
+      body.quantity != null && body.quantity !== ""
+        ? Math.max(1, Math.min(99, Number(body.quantity)))
+        : null;
     if (!id) return jsonError("id required");
-    if (category && !["hair", "head", "shirt", "pants"].includes(category)) {
+    if (
+      category &&
+      !["helmet", "hair", "head", "shirt", "pants"].includes(category)
+    ) {
       return jsonError("Invalid category");
     }
     const sql = getSql();
-    if (category && label != null) {
-      await sql`UPDATE avatar_pieces SET category = ${category}, label = ${label} WHERE id = ${id}`;
-    } else if (category) {
+    if (category) {
       await sql`UPDATE avatar_pieces SET category = ${category} WHERE id = ${id}`;
-    } else if (label != null) {
+    }
+    if (label != null) {
       await sql`UPDATE avatar_pieces SET label = ${label} WHERE id = ${id}`;
+    }
+    if (quantity != null && !Number.isNaN(quantity)) {
+      await sql`UPDATE avatar_pieces SET quantity = ${quantity} WHERE id = ${id}`;
     }
     return jsonOk({ ok: true });
   } catch (e) {
@@ -111,6 +155,7 @@ export async function DELETE(req: Request) {
     const sql = getSql();
     await sql`
       UPDATE avatars SET
+        helmet_id = CASE WHEN helmet_id = ${id} THEN NULL ELSE helmet_id END,
         hair_id = CASE WHEN hair_id = ${id} THEN NULL ELSE hair_id END,
         head_id = CASE WHEN head_id = ${id} THEN NULL ELSE head_id END,
         shirt_id = CASE WHEN shirt_id = ${id} THEN NULL ELSE shirt_id END,

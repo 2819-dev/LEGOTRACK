@@ -13,6 +13,7 @@ export async function GET() {
       u.name,
       u.job,
       u.role,
+      he.image_data AS helmet_image,
       h.image_data AS hair_image,
       d.image_data AS head_image,
       s.image_data AS shirt_image,
@@ -21,6 +22,7 @@ export async function GET() {
       (SELECT COUNT(*)::int FROM build_submissions bs WHERE bs.user_id = u.id AND bs.status = 'approved') AS built_count
     FROM users u
     LEFT JOIN avatars a ON a.user_id = u.id
+    LEFT JOIN avatar_pieces he ON he.id = a.helmet_id
     LEFT JOIN avatar_pieces h ON h.id = a.hair_id
     LEFT JOIN avatar_pieces d ON d.id = a.head_id
     LEFT JOIN avatar_pieces s ON s.id = a.shirt_id

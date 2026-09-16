@@ -3,22 +3,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { MinifigStack } from "@/components/MinifigStack";
+import { PieceOrbit } from "@/components/PieceOrbit";
 
 type Piece = {
   id: string;
-  category: "hair" | "head" | "shirt" | "pants";
+  category: "helmet" | "hair" | "head" | "shirt" | "pants";
   label: string | null;
   image_data: string;
+  image_back?: string | null;
+  quantity: number;
+  taken_count: number;
+  available: number;
+  isTaken: boolean;
 };
 
 type Selection = {
+  helmet_id: string | null;
   hair_id: string | null;
   head_id: string | null;
   shirt_id: string | null;
   pants_id: string | null;
 };
 
-const TABS = ["hair", "head", "shirt", "pants"] as const;
+type PieceRequest = {
+  id: string;
+  piece_id: string;
+  piece_label: string | null;
+  category: string;
+  image_data: string;
+  from_name?: string;
+  to_name?: string;
+};
+
+const TABS = ["helmet", "hair", "head", "shirt", "pants"] as const;
 
 export default function AvatarClient() {
   const router = useRouter();
@@ -35,15 +53,18 @@ export default function AvatarClient() {
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
   const [pieces, setPieces] = useState<Piece[]>([]);
-  const [tab, setTab] = useState<(typeof TABS)[number]>("hair");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("shirt");
   const [sel, setSel] = useState<Selection>({
+    helmet_id: null,
     hair_id: null,
     head_id: null,
     shirt_id: null,
     pants_id: null,
   });
+  const [previewPiece, setPreviewPiece] = useState<Piece | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [incoming, setIncoming] = useState<PieceRequest[]>([]);
 
   const [nameDraft, setNameDraft] = useState("");
   const [jobDraft, setJobDraft] = useState("");
@@ -52,40 +73,58 @@ export default function AvatarClient() {
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountMsg, setAccountMsg] = useState("");
 
+  async function reloadPiecesAndRequests() {
+    const [piecesRes, reqRes] = await Promise.all([
+      fetch("/api/avatar/pieces"),
+      fetch("/api/piece-requests"),
+    ]);
+    const p = await piecesRes.json();
+    setPieces(p.pieces || []);
+    const r = await reqRes.json();
+    setIncoming(r.incoming || []);
+  }
+
   useEffect(() => {
-    Promise.all([fetch("/api/auth/me"), fetch("/api/avatar/pieces"), fetch("/api/avatar")]).then(
-      async ([meRes, piecesRes, avatarRes]) => {
-        const me = await meRes.json();
-        if (!me.user) {
-          router.replace("/auth");
-          return;
-        }
-        setUser(me.user);
-        setNameDraft(me.user.name || "");
-        setJobDraft(me.user.job || "");
-        setIsAdmin(Boolean(me.isAdmin));
-        setCanAdmin(Boolean(me.canAdmin));
-        setPlayerMode(Boolean(me.playerMode));
-        setActingAs(me.actingAs || null);
-        const p = await piecesRes.json();
-        setPieces(p.pieces || []);
-        const a = await avatarRes.json();
-        if (a.avatar) {
-          setSel({
-            hair_id: a.avatar.hair_id,
-            head_id: a.avatar.head_id,
-            shirt_id: a.avatar.shirt_id,
-            pants_id: a.avatar.pants_id,
-          });
-        }
+    Promise.all([
+      fetch("/api/auth/me"),
+      fetch("/api/avatar/pieces"),
+      fetch("/api/avatar"),
+      fetch("/api/piece-requests"),
+    ]).then(async ([meRes, piecesRes, avatarRes, reqRes]) => {
+      const me = await meRes.json();
+      if (!me.user) {
+        router.replace("/auth");
+        return;
       }
-    );
+      setUser(me.user);
+      setNameDraft(me.user.name || "");
+      setJobDraft(me.user.job || "");
+      setIsAdmin(Boolean(me.isAdmin));
+      setCanAdmin(Boolean(me.canAdmin));
+      setPlayerMode(Boolean(me.playerMode));
+      setActingAs(me.actingAs || null);
+      const p = await piecesRes.json();
+      setPieces(p.pieces || []);
+      const a = await avatarRes.json();
+      if (a.avatar) {
+        setSel({
+          helmet_id: a.avatar.helmet_id,
+          hair_id: a.avatar.hair_id,
+          head_id: a.avatar.head_id,
+          shirt_id: a.avatar.shirt_id,
+          pants_id: a.avatar.pants_id,
+        });
+      }
+      const r = await reqRes.json();
+      setIncoming(r.incoming || []);
+    });
   }, [router]);
 
   const byTab = useMemo(() => pieces.filter((p) => p.category === tab), [pieces, tab]);
   const preview = useMemo(() => {
     const find = (id: string | null) => pieces.find((p) => p.id === id)?.image_data;
     return {
+      helmet: find(sel.helmet_id),
       hair: find(sel.hair_id),
       head: find(sel.head_id),
       shirt: find(sel.shirt_id),
@@ -101,13 +140,59 @@ export default function AvatarClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(sel),
     });
+    const data = await res.json();
     setSaving(false);
     if (!res.ok) {
-      setMsg("Could not save");
+      setMsg(data.error || "Could not save");
       return;
     }
-    setMsg("Saved!");
+    setMsg("Avatar saved");
+    await reloadPiecesAndRequests();
     if (onboarding) router.push("/home");
+  }
+
+  async function choosePiece(p: Piece) {
+    setPreviewPiece(p);
+    if (p.isTaken) return;
+    const key = `${p.category}_id` as keyof Selection;
+    // Helmet and hair share the top slot — picking one clears the other
+    setSel((s) => {
+      const next = { ...s, [key]: p.id };
+      if (p.category === "helmet") next.hair_id = null;
+      if (p.category === "hair") next.helmet_id = null;
+      return next;
+    });
+  }
+
+  async function requestPiece(p: Piece) {
+    setMsg("");
+    const res = await fetch("/api/piece-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pieceId: p.id }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data.error || "Could not ask");
+      return;
+    }
+    setMsg(data.note || "Request sent");
+    await reloadPiecesAndRequests();
+  }
+
+  async function handleRequest(id: string, action: "approve" | "decline") {
+    const res = await fetch("/api/piece-requests", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data.error || "Could not update request");
+      return;
+    }
+    setMsg(data.note || (action === "approve" ? "Piece freed" : "Declined"));
+    await reloadPiecesAndRequests();
   }
 
   async function saveAccount() {
@@ -130,13 +215,7 @@ export default function AvatarClient() {
       return;
     }
     setUser((u) =>
-      u
-        ? {
-            ...u,
-            name: data.profile.name,
-            job: data.profile.job,
-          }
-        : u
+      u ? { ...u, name: data.profile.name, job: data.profile.job } : u
     );
     setNameDraft(data.profile.name);
     setJobDraft(data.profile.job || "");
@@ -157,12 +236,48 @@ export default function AvatarClient() {
     >
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">
-          {onboarding ? "Create your avatar" : "Me"}
+          {onboarding ? "Build your minifig" : "Me"}
         </h1>
         <p className="soft-copy mt-3">
-          Build your minifig, and change your name or password anytime.
+          Spin each piece in 3D, claim what’s free, and ask politely when something’s taken.
         </p>
       </section>
+
+      {incoming.length > 0 && (
+        <section className="panel space-y-3 border-[var(--brick-blue)] bg-[#dbeafe]">
+          <h2 className="brand-title text-[clamp(1.2rem,3vw,1.5rem)]">Piece requests</h2>
+          {incoming.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 rounded-xl border-3 border-black bg-white p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={r.image_data} alt="" className="h-14 w-14 object-contain" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-extrabold">
+                  {r.from_name} wants your {r.piece_label || r.category}
+                </p>
+                <p className="text-xs font-bold text-black/55">
+                  Approve to free it — then tweak your avatar.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  className="chip min-h-10 bg-[#bbf7d0] px-3 text-xs"
+                  onClick={() => handleRequest(r.id, "approve")}
+                >
+                  Free it
+                </button>
+                <button
+                  type="button"
+                  className="chip min-h-10 bg-[#fecaca] px-3 text-xs"
+                  onClick={() => handleRequest(r.id, "decline")}
+                >
+                  Nope
+                </button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
 
       {!onboarding && (
         <section className="panel space-y-4">
@@ -201,7 +316,7 @@ export default function AvatarClient() {
             <input
               className="field mt-2"
               type="password"
-              placeholder={canAdmin ? "Leave blank to keep" : "Leave blank to keep"}
+              placeholder="Leave blank to keep"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
@@ -219,49 +334,30 @@ export default function AvatarClient() {
         </section>
       )}
 
-      <section className="panel">
-        <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Avatar builder</h2>
-        <p className="soft-copy mt-2">
-          Pick real scanned pieces — hair, head, shirt, and pants.
-        </p>
-      </section>
-
-      <div className="panel flex justify-center bg-[linear-gradient(180deg,#dbeafe,#fffef5)] py-6 sm:py-8">
-        <div className="relative flex h-72 w-44 flex-col items-center overflow-hidden rounded-2xl border-4 border-black bg-white shadow-[5px_5px_0_#111] sm:h-80 sm:w-48">
-          {preview.hair ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview.hair} alt="" className="h-[18%] w-full object-contain" />
-          ) : (
-            <div className="flex h-[18%] w-full items-center justify-center bg-black/5 text-xs font-bold">
-              hair
-            </div>
-          )}
-          {preview.head ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview.head} alt="" className="h-[28%] w-full object-contain" />
-          ) : (
-            <div className="flex h-[28%] w-full items-center justify-center bg-black/5 text-xs font-bold">
-              head
-            </div>
-          )}
-          {preview.shirt ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview.shirt} alt="" className="h-[28%] w-full object-contain" />
-          ) : (
-            <div className="flex h-[28%] w-full items-center justify-center bg-black/5 text-xs font-bold">
-              shirt
-            </div>
-          )}
-          {preview.pants ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview.pants} alt="" className="h-[26%] w-full object-contain" />
-          ) : (
-            <div className="flex h-[26%] w-full items-center justify-center bg-black/5 text-xs font-bold">
-              pants
-            </div>
+      <section className="panel flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+        <MinifigStack
+          helmet={preview.helmet}
+          hair={preview.hair}
+          head={preview.head}
+          shirt={preview.shirt}
+          pants={preview.pants}
+          size="lg"
+        />
+        <div className="w-full flex-1 space-y-3">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Your character</h2>
+          <p className="soft-copy">
+            One assembled minifig — helmet or hair on top, then head, shirt, pants.
+          </p>
+          {previewPiece && (
+            <PieceOrbit
+              front={previewPiece.image_data}
+              back={previewPiece.image_back}
+              label={previewPiece.label || previewPiece.category}
+              className="h-56 w-full"
+            />
           )}
         </div>
-      </div>
+      </section>
 
       <div className="flex gap-2.5 overflow-x-auto pb-1">
         {TABS.map((t) => (
@@ -276,31 +372,48 @@ export default function AvatarClient() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {byTab.length === 0 && (
           <p className="soft-copy col-span-full text-center">
-            No {tab} pieces yet. Admin can scan them in.
+            No {tab} pieces in stock yet. Admin can scan a floor photo of many at once.
           </p>
         )}
         {byTab.map((p) => {
           const key = `${p.category}_id` as keyof Selection;
           const active = sel[key] === p.id;
           return (
-            <button
+            <div
               key={p.id}
-              type="button"
-              onClick={() => setSel((s) => ({ ...s, [key]: p.id }))}
-              className={`tile min-h-[5.5rem] p-2 transition-transform active:scale-[0.97] ${
-                active ? "bg-[#dbeafe] ring-4 ring-[var(--brick-blue)]" : ""
+              className={`tile relative p-2 ${p.isTaken ? "piece-taken" : ""} ${
+                active ? "ring-4 ring-[var(--brick-blue)]" : ""
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.image_data}
-                alt={p.label || p.category}
-                className="h-24 w-full object-contain sm:h-28"
-              />
-            </button>
+              <button type="button" className="w-full text-left" onClick={() => choosePiece(p)}>
+                <div className="checker mb-2 flex h-28 items-center justify-center rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.image_data}
+                    alt={p.label || p.category}
+                    className="h-24 w-full object-contain"
+                  />
+                </div>
+                <p className="truncate text-sm font-extrabold">{p.label || p.category}</p>
+                <p className="text-[11px] font-bold text-black/55">
+                  {p.isTaken
+                    ? "Taken"
+                    : `${p.available} free · ${p.quantity} total`}
+                </p>
+              </button>
+              {p.isTaken && (
+                <button
+                  type="button"
+                  className="chip mt-2 min-h-10 w-full bg-[var(--brick-yellow)] text-xs"
+                  onClick={() => requestPiece(p)}
+                >
+                  Ask to use it
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

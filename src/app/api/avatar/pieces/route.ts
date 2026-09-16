@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getSql, type AvatarPiece } from "@/lib/db";
+import { getSql } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api";
 
 export async function GET(req: Request) {
@@ -10,20 +10,48 @@ export async function GET(req: Request) {
   const category = searchParams.get("category");
   const sql = getSql();
 
-  if (category) {
-    const rows = await sql`
-      SELECT id, category, label, image_data, source_scan_id, created_at
-      FROM avatar_pieces
-      WHERE category = ${category}
-      ORDER BY created_at DESC
-    `;
-    return jsonOk({ pieces: rows as AvatarPiece[] });
-  }
+  const rows = category
+    ? await sql`
+        SELECT
+          p.id, p.category, p.label, p.image_data, p.image_back, p.color_key, p.quantity,
+          p.source_scan_id, p.created_at,
+          (
+            SELECT count(*)::int FROM avatars a
+            WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id
+          ) AS taken_count
+        FROM avatar_pieces p
+        WHERE p.category = ${category}
+        ORDER BY p.created_at DESC
+      `
+    : await sql`
+        SELECT
+          p.id, p.category, p.label, p.image_data, p.image_back, p.color_key, p.quantity,
+          p.source_scan_id, p.created_at,
+          (
+            SELECT count(*)::int FROM avatars a
+            WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id
+          ) AS taken_count
+        FROM avatar_pieces p
+        ORDER BY p.category, p.created_at DESC
+      `;
 
-  const rows = await sql`
-    SELECT id, category, label, image_data, source_scan_id, created_at
-    FROM avatar_pieces
-    ORDER BY category, created_at DESC
-  `;
-  return jsonOk({ pieces: rows as AvatarPiece[] });
+  const pieces = (rows as Array<Record<string, unknown>>).map((p) => {
+    const quantity = Number(p.quantity || 1);
+    const taken = Number(p.taken_count || 0);
+    const available = Math.max(0, quantity - taken);
+    return {
+      ...p,
+      quantity,
+      taken_count: taken,
+      available,
+      isTaken: available <= 0,
+    };
+  });
+
+  // Available first, taken last
+  pieces.sort((a, b) => Number(a.isTaken) - Number(b.isTaken));
+
+  return jsonOk({ pieces });
 }

@@ -14,7 +14,7 @@ export async function GET() {
     const sql = getSql();
     const users = await sql`
       SELECT u.id, u.name, u.role, u.job, u.created_at,
-        (a.hair_id IS NOT NULL AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
+        ((a.helmet_id IS NOT NULL OR a.hair_id IS NOT NULL) AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
       FROM users u
       LEFT JOIN avatars a ON a.user_id = u.id
       ORDER BY u.created_at DESC
@@ -122,7 +122,7 @@ export async function PATCH(req: Request) {
 
     const rows = await sql`
       SELECT u.id, u.name, u.role, u.job, u.created_at,
-        (a.hair_id IS NOT NULL AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
+        ((a.helmet_id IS NOT NULL OR a.hair_id IS NOT NULL) AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
       FROM users u
       LEFT JOIN avatars a ON a.user_id = u.id
       WHERE u.id = ${id}

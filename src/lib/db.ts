@@ -18,9 +18,12 @@ export type UserRow = {
 
 export type AvatarPiece = {
   id: string;
-  category: "hair" | "head" | "shirt" | "pants";
+  category: "helmet" | "hair" | "head" | "shirt" | "pants";
   label: string | null;
   image_data: string;
+  image_back?: string | null;
+  color_key?: string | null;
+  quantity?: number;
   source_scan_id: string | null;
   created_at: string;
 };

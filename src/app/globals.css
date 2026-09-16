@@ -272,6 +272,34 @@ textarea.field {
   background: #fff;
 }
 
+.checker {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+    linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+    linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+}
+
+.piece-orbit {
+  min-height: 12rem;
+  border: 3px solid #111;
+  border-radius: calc(var(--radius) - 0.1rem);
+  overflow: hidden;
+  cursor: grab;
+}
+
+.piece-orbit:active {
+  cursor: grabbing;
+}
+
+.piece-taken {
+  filter: grayscale(1) brightness(0.92);
+  opacity: 0.72;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

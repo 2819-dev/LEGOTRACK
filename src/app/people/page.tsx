@@ -11,6 +11,7 @@ type Person = {
   name: string;
   job: string | null;
   role: string;
+  helmet_image: string | null;
   hair_image: string | null;
   head_image: string | null;
   shirt_image: string | null;
@@ -65,6 +66,7 @@ export default function PeoplePage() {
             className="panel flex items-center gap-4 transition-transform active:translate-y-0.5"
           >
             <MinifigStack
+              helmet={p.helmet_image}
               hair={p.hair_image}
               head={p.head_image}
               shirt={p.shirt_image}

@@ -22,11 +22,12 @@ export async function GET() {
 
   const sql = getSql();
   const avatarRows = await sql`
-    SELECT hair_id, head_id, shirt_id, pants_id
+    SELECT helmet_id, hair_id, head_id, shirt_id, pants_id
     FROM avatars WHERE user_id = ${effective.id}
   `;
   const avatar = avatarRows[0] as
     | {
+        helmet_id: string | null;
         hair_id: string | null;
         head_id: string | null;
         shirt_id: string | null;
@@ -35,7 +36,10 @@ export async function GET() {
     | undefined;
 
   const complete = Boolean(
-    avatar?.hair_id && avatar?.head_id && avatar?.shirt_id && avatar?.pants_id
+    (avatar?.helmet_id || avatar?.hair_id) &&
+      avatar?.head_id &&
+      avatar?.shirt_id &&
+      avatar?.pants_id
   );
 
   const profileRows = await sql`
