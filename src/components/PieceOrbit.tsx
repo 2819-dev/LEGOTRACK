@@ -75,7 +75,7 @@ export function PieceOrbit({
         />
       </div>
       <p className="pointer-events-none absolute bottom-2 left-0 right-0 z-20 text-center text-[10px] font-extrabold uppercase tracking-wide text-black/40">
-        Drag to spin
+        Official part · drag to spin
       </p>
     </div>
   );
