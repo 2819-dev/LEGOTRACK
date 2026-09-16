@@ -255,7 +255,7 @@ export default function AvatarClient() {
               <img src={r.image_data} alt="" className="h-14 w-14 object-contain" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-extrabold">
-                  {r.from_name} wants your {r.piece_label || r.category}
+                  {r.from_name} requested your {r.piece_label || r.category}
                 </p>
                 <p className="text-xs font-bold text-black/55">
                   Approving releases this piece from your avatar.
