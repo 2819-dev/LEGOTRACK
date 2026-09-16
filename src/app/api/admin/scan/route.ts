@@ -101,3 +101,27 @@ export async function PATCH(req: Request) {
     return jsonError("Update failed", 500);
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    await requireAdmin();
+    const { searchParams } = new URL(req.url);
+    const id = String(searchParams.get("id") ?? "").trim();
+    if (!id) return jsonError("id required");
+    const sql = getSql();
+    await sql`
+      UPDATE avatars SET
+        hair_id = CASE WHEN hair_id = ${id} THEN NULL ELSE hair_id END,
+        head_id = CASE WHEN head_id = ${id} THEN NULL ELSE head_id END,
+        shirt_id = CASE WHEN shirt_id = ${id} THEN NULL ELSE shirt_id END,
+        pants_id = CASE WHEN pants_id = ${id} THEN NULL ELSE pants_id END
+    `;
+    await sql`DELETE FROM avatar_pieces WHERE id = ${id}`;
+    return jsonOk({ ok: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "UNAUTHORIZED") return jsonError("Unauthorized", 401);
+    if (msg === "FORBIDDEN") return jsonError("Forbidden", 403);
+    return jsonError("Delete failed", 500);
+  }
+}

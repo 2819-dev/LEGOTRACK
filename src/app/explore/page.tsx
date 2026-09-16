@@ -22,6 +22,8 @@ export default function ExplorePage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canAdmin, setCanAdmin] = useState(false);
+  const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState<"all" | "building" | "vehicle" | "set" | "other">("all");
@@ -35,6 +37,8 @@ export default function ExplorePage() {
         else {
           setUser(me.user);
           setIsAdmin(Boolean(me.isAdmin));
+          setCanAdmin(Boolean(me.canAdmin));
+          setPlayerMode(Boolean(me.playerMode));
           setActingAs(me.actingAs || null);
         }
       });
@@ -51,7 +55,7 @@ export default function ExplorePage() {
   const shown = items.filter((i) => filter === "all" || i.kind === filter);
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Explore</h1>
         <p className="soft-copy mt-3">

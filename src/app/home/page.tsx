@@ -8,6 +8,8 @@ import { AppShell } from "@/components/AppShell";
 type Me = {
   user: { id: string; name: string; role: string };
   isAdmin?: boolean;
+  canAdmin?: boolean;
+  playerMode?: boolean;
   actingAs?: { name: string } | null;
   avatarComplete: boolean;
 };
@@ -41,7 +43,7 @@ export default function HomePage() {
   }
 
   return (
-    <AppShell user={me.user} isAdmin={Boolean(me.isAdmin)} actingAs={me.actingAs || null}>
+    <AppShell user={me.user} isAdmin={Boolean(me.isAdmin)} canAdmin={Boolean(me.canAdmin)} playerMode={Boolean(me.playerMode)} actingAs={me.actingAs || null}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">City desk</h1>
         <p className="soft-copy mt-3">

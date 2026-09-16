@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { AppQrCard } from "@/components/AppQrCard";
 
 type UserRow = {
   id: string;
@@ -53,7 +54,9 @@ export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ id?: string; name: string; role: string } | null>(null);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
-  const [tab, setTab] = useState<"scan" | "sets" | "users" | "reviews" | "rules">("scan");
+  const [tab, setTab] = useState<"scan" | "sets" | "pieces" | "users" | "reviews" | "rules">(
+    "scan"
+  );
   const [scanMode, setScanMode] = useState<"minifig" | "set">("minifig");
   const [setName, setSetName] = useState("");
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -120,17 +123,23 @@ export default function AdminPage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((me) => {
+      .then(async (me) => {
         if (!me.user) {
           router.replace("/auth");
           return;
         }
-        if (!me.isAdmin) {
+        if (!me.canAdmin) {
           router.replace("/home");
           return;
         }
+        if (me.playerMode) {
+          await fetch("/api/admin/player-mode", { method: "DELETE" });
+        }
+        if (me.actingAs) {
+          await fetch("/api/admin/act-as", { method: "DELETE" });
+        }
         setUser(me.realUser || me.user);
-        setActingAs(me.actingAs || null);
+        setActingAs(null);
         loadAll();
       });
   }, [router]);
@@ -298,6 +307,44 @@ export default function AdminPage() {
     router.push("/home");
   }
 
+  async function playAsPlayer() {
+    setBusy(true);
+    setMsg("");
+    const res = await fetch("/api/admin/player-mode", { method: "POST" });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(data.error || "Could not enter player mode");
+      return;
+    }
+    router.push("/home");
+  }
+
+  async function deletePiece(id: string) {
+    if (!window.confirm("Delete this piece?")) return;
+    setBusy(true);
+    await fetch(`/api/admin/scan?id=${id}`, { method: "DELETE" });
+    setBusy(false);
+    setScanPreview((prev) => prev.filter((p) => p.id !== id));
+    loadAll();
+  }
+
+  async function saveRule(id: string, patch: Partial<Standard>) {
+    setBusy(true);
+    const res = await fetch("/api/standards", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...patch }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setMsg(data.error || "Could not save rule");
+      return;
+    }
+    loadAll();
+  }
+
   async function review(id: string, status: "approved" | "rejected", admin_notes: string) {
     await fetch("/api/builds", {
       method: "PATCH",
@@ -359,14 +406,29 @@ export default function AdminPage() {
 
   if (!user) return <main className="loading-screen">Loading…</main>;
 
+  const appUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL || "https://legotrack-449.netlify.app";
+
   return (
-    <AppShell user={user} isAdmin actingAs={actingAs}>
+    <AppShell user={user} isAdmin canAdmin actingAs={actingAs}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Admin panel</h1>
         <p className="soft-copy mt-3">
-          Scan minifigs and sets, manage people, rename anyone, use the app as them, review builds.
+          Scan pieces and sets, manage everyone (including you), review builds, edit rules.
         </p>
+        <button
+          type="button"
+          className="lego-btn lego-btn-blue mt-5 w-full"
+          disabled={busy}
+          onClick={playAsPlayer}
+        >
+          Use as a normal player
+        </button>
       </section>
+
+      <AppQrCard url={appUrl} />
 
       <section className="panel flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -393,6 +455,7 @@ export default function AdminPage() {
         {(
           [
             ["scan", "Scan"],
+            ["pieces", "Pieces"],
             ["sets", "Sets"],
             ["users", "People"],
             ["reviews", "Reviews"],
@@ -492,27 +555,59 @@ export default function AdminPage() {
                             </option>
                           ))}
                         </select>
+                        <button
+                          type="button"
+                          className="chip min-h-10 w-full border-[var(--brick-red)] bg-[#fecaca] text-sm"
+                          onClick={() => deletePiece(p.id)}
+                        >
+                          Delete
+                        </button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-              <div>
-                <h3 className="mb-3 text-lg font-extrabold">Piece library ({pieces.length})</h3>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {pieces.slice(0, 36).map((p) => (
-                    <div key={p.id} className="tile p-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.image_data} alt="" className="h-20 w-full object-contain" />
-                      <p className="truncate pt-1 text-center text-xs font-bold capitalize">
-                        {p.category}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </>
           )}
+        </section>
+      )}
+
+      {tab === "pieces" && (
+        <section className="panel space-y-4">
+          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">
+            Piece library ({pieces.length})
+          </h2>
+          <p className="soft-copy">Edit category or delete any scanned minifig piece.</p>
+          {pieces.length === 0 && (
+            <p className="soft-copy text-center">No pieces yet — scan a minifig first.</p>
+          )}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {pieces.map((p) => (
+              <div key={p.id} className="tile space-y-2 p-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.image_data} alt="" className="h-28 w-full object-contain" />
+                <select
+                  className="field min-h-12 text-base capitalize"
+                  value={p.category}
+                  onChange={(e) => reassign(p.id, e.target.value)}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="chip min-h-10 w-full border-[var(--brick-red)] bg-[#fecaca] text-sm"
+                  disabled={busy}
+                  onClick={() => deletePiece(p.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -604,7 +699,16 @@ export default function AdminPage() {
                     {u.avatar_complete ? "Avatar ready" : "No avatar"}
                     {isSelf ? " · you" : ""}
                   </p>
-                  {!isSelf && (
+                  {isSelf ? (
+                    <button
+                      type="button"
+                      className="chip min-h-11 bg-[#bbf7d0] px-3 text-sm"
+                      disabled={busy}
+                      onClick={playAsPlayer}
+                    >
+                      Use as player
+                    </button>
+                  ) : (
                     <button
                       type="button"
                       className="chip min-h-11 bg-[#7dd3fc] px-3 text-sm"
@@ -760,18 +864,68 @@ export default function AdminPage() {
           </button>
           <ul className="space-y-3 pt-2">
             {standards.map((s) => (
-              <li key={s.id} className="tile space-y-2 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-extrabold">
-                      {s.title}
-                      {s.is_exception ? " (exception)" : ""}
-                    </p>
-                    <p className="soft-copy mt-1 text-[1rem]">{s.body}</p>
-                  </div>
+              <li key={s.id} className="tile space-y-3 p-4">
+                <label className="block text-base font-extrabold">
+                  Title
+                  <input
+                    className="field mt-2"
+                    value={s.title}
+                    onChange={(e) =>
+                      setStandards((list) =>
+                        list.map((row) =>
+                          row.id === s.id ? { ...row, title: e.target.value } : row
+                        )
+                      )
+                    }
+                  />
+                </label>
+                <label className="block text-base font-extrabold">
+                  Body
+                  <textarea
+                    className="field mt-2"
+                    value={s.body}
+                    onChange={(e) =>
+                      setStandards((list) =>
+                        list.map((row) =>
+                          row.id === s.id ? { ...row, body: e.target.value } : row
+                        )
+                      )
+                    }
+                  />
+                </label>
+                <label className="flex min-h-12 items-center gap-3 text-base font-extrabold">
+                  <input
+                    type="checkbox"
+                    className="h-6 w-6 accent-[var(--brick-blue)]"
+                    checked={s.is_exception}
+                    onChange={(e) =>
+                      setStandards((list) =>
+                        list.map((row) =>
+                          row.id === s.id ? { ...row, is_exception: e.target.checked } : row
+                        )
+                      )
+                    }
+                  />
+                  Exception
+                </label>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    className="chip min-h-11 shrink-0 border-[var(--brick-red)] bg-[#fecaca] text-sm"
+                    className="lego-btn lego-btn-yellow text-[clamp(0.95rem,2.2vw,1.2rem)]"
+                    disabled={busy}
+                    onClick={() =>
+                      saveRule(s.id, {
+                        title: s.title,
+                        body: s.body,
+                        is_exception: s.is_exception,
+                      })
+                    }
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="lego-btn lego-btn-red text-[clamp(0.95rem,2.2vw,1.2rem)]"
                     onClick={() => deleteRule(s.id)}
                   >
                     Delete

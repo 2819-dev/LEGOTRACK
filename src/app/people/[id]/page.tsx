@@ -32,6 +32,8 @@ export default function PersonProfilePage() {
   const id = String(params.id || "");
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canAdmin, setCanAdmin] = useState(false);
+  const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
   const [person, setPerson] = useState<Person | null>(null);
   const [owns, setOwns] = useState<Thing[]>([]);
@@ -46,6 +48,8 @@ export default function PersonProfilePage() {
         else {
           setUser(me.user);
           setIsAdmin(Boolean(me.isAdmin));
+          setCanAdmin(Boolean(me.canAdmin));
+          setPlayerMode(Boolean(me.playerMode));
           setActingAs(me.actingAs || null);
         }
       });
@@ -69,7 +73,7 @@ export default function PersonProfilePage() {
   const list = tab === "owns" ? owns : builds;
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
       <Link href="/people" className="chip mb-1 w-fit bg-white text-sm">
         ← People
       </Link>

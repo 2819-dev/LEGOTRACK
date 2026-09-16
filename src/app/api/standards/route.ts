@@ -54,3 +54,43 @@ export async function DELETE(req: Request) {
     return jsonError("Failed", 500);
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    await requireAdmin();
+    const body = await req.json();
+    const id = String(body.id ?? "").trim();
+    if (!id) return jsonError("id required");
+    const sql = getSql();
+    const existing = await sql`SELECT id FROM community_standards WHERE id = ${id} LIMIT 1`;
+    if (!existing[0]) return jsonError("Not found", 404);
+
+    if (body.title != null) {
+      const title = String(body.title).trim();
+      if (!title) return jsonError("Title cannot be empty");
+      await sql`UPDATE community_standards SET title = ${title} WHERE id = ${id}`;
+    }
+    if (body.body != null) {
+      const text = String(body.body).trim();
+      if (!text) return jsonError("Body cannot be empty");
+      await sql`UPDATE community_standards SET body = ${text} WHERE id = ${id}`;
+    }
+    if (body.is_exception != null) {
+      await sql`UPDATE community_standards SET is_exception = ${Boolean(body.is_exception)} WHERE id = ${id}`;
+    }
+    if (body.sort_order != null) {
+      await sql`UPDATE community_standards SET sort_order = ${Number(body.sort_order)} WHERE id = ${id}`;
+    }
+
+    const rows = await sql`
+      SELECT id, title, body, sort_order, is_exception
+      FROM community_standards WHERE id = ${id} LIMIT 1
+    `;
+    return jsonOk({ standard: rows[0] });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "UNAUTHORIZED") return jsonError("Unauthorized", 401);
+    if (msg === "FORBIDDEN") return jsonError("Forbidden", 403);
+    return jsonError("Failed", 500);
+  }
+}

@@ -5,6 +5,7 @@ import { getSql, type UserRow } from "./db";
 
 const COOKIE = "legotrack_session";
 const ACT_AS_COOKIE = "legotrack_act_as";
+const PLAYER_MODE_COOKIE = "legotrack_player_mode";
 
 function secretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -50,12 +51,52 @@ export async function createSession(user: SessionUser) {
   const jar = await cookies();
   jar.set(COOKIE, token, cookieOpts(60 * 60 * 24 * 30));
   jar.delete(ACT_AS_COOKIE);
+  jar.delete(PLAYER_MODE_COOKIE);
+}
+
+/** Refresh JWT name/role after admin edits (e.g. rename yourself). */
+export async function refreshSessionIfSelf(userId: string) {
+  const real = await getRealSession();
+  if (!real || real.id !== userId) return;
+  const fresh = await findUserById(userId);
+  if (!fresh) return;
+  const jar = await cookies();
+  const actAs = jar.get(ACT_AS_COOKIE)?.value;
+  const playerMode = jar.get(PLAYER_MODE_COOKIE)?.value;
+  await createSession(fresh);
+  if (actAs) {
+    jar.set(ACT_AS_COOKIE, actAs, cookieOpts(60 * 60 * 24 * 7));
+  }
+  if (playerMode === "1" && fresh.role === "admin") {
+    jar.set(PLAYER_MODE_COOKIE, "1", cookieOpts(60 * 60 * 24 * 30));
+  }
 }
 
 export async function destroySession() {
   const jar = await cookies();
   jar.delete(COOKIE);
   jar.delete(ACT_AS_COOKIE);
+  jar.delete(PLAYER_MODE_COOKIE);
+}
+
+export async function isPlayerMode(): Promise<boolean> {
+  const real = await getRealSession();
+  if (!real || real.role !== "admin") return false;
+  const jar = await cookies();
+  return jar.get(PLAYER_MODE_COOKIE)?.value === "1";
+}
+
+/** Admin experiences the app as a normal player (hides admin chrome). */
+export async function startPlayerMode() {
+  await requireAdmin();
+  await stopActingAs();
+  const jar = await cookies();
+  jar.set(PLAYER_MODE_COOKIE, "1", cookieOpts(60 * 60 * 24 * 30));
+}
+
+export async function stopPlayerMode() {
+  const jar = await cookies();
+  jar.delete(PLAYER_MODE_COOKIE);
 }
 
 export async function getRealSession(): Promise<SessionUser | null> {
@@ -145,20 +186,6 @@ export async function requireAdmin() {
   if (!user) throw new Error("UNAUTHORIZED");
   if (user.role !== "admin") throw new Error("FORBIDDEN");
   return user;
-}
-
-/** Refresh JWT name/role after admin edits (e.g. rename yourself). */
-export async function refreshSessionIfSelf(userId: string) {
-  const real = await getRealSession();
-  if (!real || real.id !== userId) return;
-  const fresh = await findUserById(userId);
-  if (!fresh) return;
-  const jar = await cookies();
-  const actAs = jar.get(ACT_AS_COOKIE)?.value;
-  await createSession(fresh);
-  if (actAs) {
-    jar.set(ACT_AS_COOKIE, actAs, cookieOpts(60 * 60 * 24 * 7));
-  }
 }
 
 export async function findUserByName(name: string) {

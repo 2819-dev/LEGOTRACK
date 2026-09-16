@@ -17,11 +17,15 @@ export function AppShell({
   user,
   isAdmin = false,
   actingAs = null,
+  playerMode = false,
+  canAdmin = false,
 }: {
   children: React.ReactNode;
   user: { name: string; role: string };
   isAdmin?: boolean;
   actingAs?: { name: string } | null;
+  playerMode?: boolean;
+  canAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -38,6 +42,11 @@ export function AppShell({
     window.location.href = "/admin";
   }
 
+  async function stopPlayerMode() {
+    await fetch("/api/admin/player-mode", { method: "DELETE" });
+    window.location.href = "/admin";
+  }
+
   return (
     <div
       className={`page-wrap flex min-h-dvh flex-col pt-[max(0.65rem,env(safe-area-inset-top))] ${
@@ -51,6 +60,15 @@ export function AppShell({
           <p className="text-sm font-extrabold">Using as {actingAs.name}</p>
           <button type="button" onClick={stopActingAs} className="chip min-h-10 bg-white px-3 text-sm">
             Stop
+          </button>
+        </div>
+      )}
+
+      {playerMode && canAdmin && !actingAs && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border-3 border-black bg-[#bbf7d0] px-3 py-2.5">
+          <p className="text-sm font-extrabold">Playing as a normal user</p>
+          <button type="button" onClick={stopPlayerMode} className="chip min-h-10 bg-white px-3 text-sm">
+            Admin
           </button>
         </div>
       )}
