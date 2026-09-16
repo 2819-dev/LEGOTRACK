@@ -19,7 +19,7 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function resolve() {
-      // Admin auth paths always reachable so the toggle / login still works off-kiosk
+      // Admin auth / admin panel always reachable so login and the gate toggle work off-kiosk
       if (isAdminAllowedPath(pathname)) {
         if (!cancelled) setMode("admin-phone");
         return;
@@ -28,6 +28,18 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
       if (isIPad9FamilyKiosk()) {
         if (!cancelled) setMode("ok");
         return;
+      }
+
+      // Signed-in admins may use the full app (including player mode) from any device.
+      try {
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" });
+        const me = await meRes.json();
+        if (me?.canAdmin || me?.realUser?.role === "admin") {
+          if (!cancelled) setMode("admin-phone");
+          return;
+        }
+      } catch {
+        // Fall through to gate check
       }
 
       let gateOn = false;
