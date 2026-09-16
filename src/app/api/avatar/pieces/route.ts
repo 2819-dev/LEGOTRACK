@@ -8,13 +8,15 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
+  const includeExclusive = searchParams.get("includeExclusive") === "1";
   const sql = getSql();
 
   const rows = category
-    ? await sql`
+    ? includeExclusive
+      ? await sql`
         SELECT
           p.id, p.category, p.label, p.image_data, p.image_back, p.color_key, p.quantity,
-          p.source_scan_id, p.created_at,
+          p.source_scan_id, p.created_at, p.exclusive_minifig_id,
           (
             SELECT count(*)::int FROM avatars a
             WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
@@ -24,16 +26,44 @@ export async function GET(req: Request) {
         WHERE p.category = ${category}
         ORDER BY p.created_at DESC
       `
-    : await sql`
+      : await sql`
         SELECT
           p.id, p.category, p.label, p.image_data, p.image_back, p.color_key, p.quantity,
-          p.source_scan_id, p.created_at,
+          p.source_scan_id, p.created_at, p.exclusive_minifig_id,
           (
             SELECT count(*)::int FROM avatars a
             WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
                OR a.shirt_id = p.id OR a.pants_id = p.id
           ) AS taken_count
         FROM avatar_pieces p
+        WHERE p.category = ${category}
+          AND p.exclusive_minifig_id IS NULL
+        ORDER BY p.created_at DESC
+      `
+    : includeExclusive
+      ? await sql`
+        SELECT
+          p.id, p.category, p.label, p.image_data, p.image_back, p.color_key, p.quantity,
+          p.source_scan_id, p.created_at, p.exclusive_minifig_id,
+          (
+            SELECT count(*)::int FROM avatars a
+            WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id
+          ) AS taken_count
+        FROM avatar_pieces p
+        ORDER BY p.category, p.created_at DESC
+      `
+      : await sql`
+        SELECT
+          p.id, p.category, p.label, p.image_data, p.image_back, p.color_key, p.quantity,
+          p.source_scan_id, p.created_at, p.exclusive_minifig_id,
+          (
+            SELECT count(*)::int FROM avatars a
+            WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id
+          ) AS taken_count
+        FROM avatar_pieces p
+        WHERE p.exclusive_minifig_id IS NULL
         ORDER BY p.category, p.created_at DESC
       `;
 

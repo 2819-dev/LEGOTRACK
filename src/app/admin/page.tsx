@@ -23,6 +23,7 @@ type Piece = {
   image_data: string;
   image_back?: string | null;
   quantity?: number;
+  exclusive_minifig_id?: string | null;
 };
 
 type Build = {
@@ -84,15 +85,34 @@ export default function AdminPage() {
   const [ruleException, setRuleException] = useState(false);
   const [accessGateEnabled, setAccessGateEnabled] = useState(false);
   const [gateBusy, setGateBusy] = useState(false);
+  const [exclusiveMode, setExclusiveMode] = useState(false);
+  const [exclusiveName, setExclusiveName] = useState("");
+  const [exclusivePick, setExclusivePick] = useState<{
+    helmet_id: string | null;
+    hair_id: string | null;
+    head_id: string | null;
+    shirt_id: string | null;
+    pants_id: string | null;
+  }>({
+    helmet_id: null,
+    hair_id: null,
+    head_id: null,
+    shirt_id: null,
+    pants_id: null,
+  });
+  const [exclusives, setExclusives] = useState<
+    Array<{ id: string; name: string; quantity: number }>
+  >([]);
 
   async function loadAll() {
-    const [u, b, s, p, c, gate] = await Promise.all([
+    const [u, b, s, p, c, gate, ex] = await Promise.all([
       fetch("/api/admin/users").then((r) => r.json()),
       fetch("/api/builds?all=1").then((r) => r.json()),
       fetch("/api/standards").then((r) => r.json()),
-      fetch("/api/avatar/pieces").then((r) => r.json()),
+      fetch("/api/avatar/pieces?includeExclusive=1").then((r) => r.json()),
       fetch("/api/catalog").then((r) => r.json()),
       fetch("/api/settings/access-gate", { cache: "no-store" }).then((r) => r.json()),
+      fetch("/api/exclusive-minifigs").then((r) => r.json()),
     ]);
     const list = (u.users || []) as UserRow[];
     setUsers(list);
@@ -101,6 +121,7 @@ export default function AdminPage() {
     setPieces(p.pieces || []);
     setCatalog(c.sets || []);
     setAccessGateEnabled(Boolean(gate.accessGateEnabled));
+    setExclusives(ex.exclusives || []);
     setEditDrafts((prev) => {
       const next = { ...prev };
       for (const person of list) {
@@ -336,6 +357,70 @@ export default function AdminPage() {
     await fetch(`/api/admin/scan?id=${id}`, { method: "DELETE" });
     setBusy(false);
     setScanPreview((prev) => prev.filter((p) => p.id !== id));
+    loadAll();
+  }
+
+  function toggleExclusivePick(p: Piece) {
+    if (p.exclusive_minifig_id) {
+      setMsg("That piece is already in an exclusive minifig");
+      return;
+    }
+    const key = `${p.category}_id` as keyof typeof exclusivePick;
+    setExclusivePick((prev) => {
+      const next = { ...prev };
+      if (next[key] === p.id) {
+        next[key] = null;
+        return next;
+      }
+      next[key] = p.id;
+      if (p.category === "helmet") next.hair_id = null;
+      if (p.category === "hair") next.helmet_id = null;
+      return next;
+    });
+  }
+
+  async function createExclusive() {
+    setBusy(true);
+    setMsg("");
+    const res = await fetch("/api/exclusive-minifigs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: exclusiveName || "Exclusive minifig",
+        ...exclusivePick,
+        quantity: 1,
+      }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(data.error || "Could not create exclusive");
+      return;
+    }
+    setMsg(`Created ${data.exclusive.name}`);
+    setExclusiveMode(false);
+    setExclusiveName("");
+    setExclusivePick({
+      helmet_id: null,
+      hair_id: null,
+      head_id: null,
+      shirt_id: null,
+      pants_id: null,
+    });
+    loadAll();
+  }
+
+  async function deleteExclusive(id: string, name: string) {
+    if (!window.confirm(`Delete exclusive “${name}”? Parts return to the library.`)) return;
+    setBusy(true);
+    const res = await fetch(`/api/exclusive-minifigs?id=${id}`, { method: "DELETE" });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(data.error || "Could not delete exclusive");
+      return;
+    }
+    setMsg("Exclusive deleted");
     loadAll();
   }
 
@@ -592,56 +677,155 @@ export default function AdminPage() {
       )}
 
       {tab === "pieces" && (
-        <section className="panel space-y-4">
-          <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">
-            Piece library ({pieces.length})
-          </h2>
-          <p className="soft-copy">
-            Edit category, quantity, or remove pieces.
-          </p>
+        <section className="relative panel space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">
+                Piece library ({pieces.length})
+              </h2>
+              <p className="soft-copy mt-1">
+                {exclusiveMode
+                  ? "Select helmet or hair, head, shirt, and pants."
+                  : "Edit category, quantity, or remove pieces."}
+              </p>
+            </div>
+            <button
+              type="button"
+              className={`chip min-h-11 shrink-0 px-3 text-sm ${
+                exclusiveMode ? "bg-black text-white" : "bg-[var(--brick-yellow)]"
+              }`}
+              onClick={() => setExclusiveMode((v) => !v)}
+            >
+              {exclusiveMode ? "Cancel" : "Exclusive"}
+            </button>
+          </div>
+
+          {exclusiveMode && (
+            <div className="space-y-3 rounded-xl border-3 border-black bg-[#fff8d6] p-4">
+              <input
+                className="field"
+                placeholder="Exclusive name"
+                value={exclusiveName}
+                onChange={(e) => setExclusiveName(e.target.value)}
+              />
+              <p className="text-sm font-bold text-black/60">
+                Selected:{" "}
+                {[
+                  exclusivePick.helmet_id && "helmet",
+                  exclusivePick.hair_id && "hair",
+                  exclusivePick.head_id && "head",
+                  exclusivePick.shirt_id && "shirt",
+                  exclusivePick.pants_id && "pants",
+                ]
+                  .filter(Boolean)
+                  .join(", ") || "none"}
+              </p>
+              <button
+                type="button"
+                className="lego-btn lego-btn-yellow w-full"
+                disabled={busy}
+                onClick={createExclusive}
+              >
+                Create exclusive minifig
+              </button>
+            </div>
+          )}
+
+          {exclusives.length > 0 && !exclusiveMode && (
+            <div className="space-y-2">
+              <h3 className="text-base font-extrabold">Exclusive minifigs</h3>
+              {exclusives.map((ex) => (
+                <div
+                  key={ex.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border-3 border-black bg-white px-3 py-2"
+                >
+                  <p className="text-sm font-extrabold">
+                    {ex.name} · qty {ex.quantity}
+                  </p>
+                  <button
+                    type="button"
+                    className="chip min-h-10 border-[var(--brick-red)] bg-[#fecaca] px-3 text-xs"
+                    disabled={busy}
+                    onClick={() => deleteExclusive(ex.id, ex.name)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {pieces.length === 0 && (
             <p className="soft-copy text-center">No pieces yet.</p>
           )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {pieces.map((p) => (
-              <div key={p.id} className="tile space-y-2 p-3">
-                <div className="checker flex h-28 items-center justify-center rounded-xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.image_data} alt="" className="h-24 w-full object-contain" />
+            {pieces.map((p) => {
+              const key = `${p.category}_id` as keyof typeof exclusivePick;
+              const selected = exclusiveMode && exclusivePick[key] === p.id;
+              const locked = Boolean(p.exclusive_minifig_id);
+              return (
+                <div
+                  key={p.id}
+                  className={`tile space-y-2 p-3 ${selected ? "ring-4 ring-[var(--brick-blue)]" : ""} ${
+                    locked ? "opacity-55" : ""
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    disabled={exclusiveMode ? locked : false}
+                    onClick={() => {
+                      if (exclusiveMode) toggleExclusivePick(p);
+                    }}
+                  >
+                    <div className="checker flex h-28 items-center justify-center rounded-xl">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.image_data} alt="" className="h-24 w-full object-contain" />
+                    </div>
+                    <p className="mt-2 truncate text-sm font-extrabold">
+                      {p.label || p.category}
+                    </p>
+                    {locked && (
+                      <p className="text-[11px] font-bold text-black/55">In exclusive</p>
+                    )}
+                  </button>
+                  {!exclusiveMode && (
+                    <>
+                      <select
+                        className="field min-h-12 text-base capitalize"
+                        value={p.category}
+                        onChange={(e) => reassign(p.id, e.target.value)}
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                      <label className="block text-xs font-extrabold uppercase text-black/55">
+                        Qty
+                        <input
+                          className="field mt-1 min-h-11"
+                          type="number"
+                          min={1}
+                          max={99}
+                          defaultValue={p.quantity || 1}
+                          onBlur={(e) => setPieceQuantity(p.id, Number(e.target.value) || 1)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="chip min-h-10 w-full border-[var(--brick-red)] bg-[#fecaca] text-sm"
+                        disabled={busy || locked}
+                        onClick={() => deletePiece(p.id)}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
-                <p className="truncate text-sm font-extrabold">{p.label || p.category}</p>
-                <select
-                  className="field min-h-12 text-base capitalize"
-                  value={p.category}
-                  onChange={(e) => reassign(p.id, e.target.value)}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-                <label className="block text-xs font-extrabold uppercase text-black/55">
-                  Qty
-                  <input
-                    className="field mt-1 min-h-11"
-                    type="number"
-                    min={1}
-                    max={99}
-                    defaultValue={p.quantity || 1}
-                    onBlur={(e) => setPieceQuantity(p.id, Number(e.target.value) || 1)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="chip min-h-10 w-full border-[var(--brick-red)] bg-[#fecaca] text-sm"
-                  disabled={busy}
-                  onClick={() => deletePiece(p.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

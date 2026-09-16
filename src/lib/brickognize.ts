@@ -73,8 +73,7 @@ function pickMinifigItem(
   items: PredictItem[],
   bboxScore: number
 ): PredictItem | null {
-  // Keep the bar high enough to avoid random wrong catalog parts.
-  const minScore = bboxScore >= 0.75 ? 0.28 : 0.34;
+  const minScore = bboxScore >= 0.65 ? 0.24 : 0.3;
   const ranked = items.filter((i) => i.score >= minScore);
   for (const candidate of ranked) {
     if (mapBrickCategory(candidate.category || "", candidate.name)) {
@@ -136,10 +135,10 @@ export async function predictLegoPart(imageBuf: Buffer): Promise<{
   if (!item) return { match: null, bbox };
 
   // Weak part scores without a confident box are usually wrong.
-  if ((!bbox || bbox.score < 0.4) && item.score < 0.36) {
+  if ((!bbox || bbox.score < 0.35) && item.score < 0.32) {
     return { match: null, bbox };
   }
-  if (item.score < 0.28) {
+  if (item.score < 0.24) {
     return { match: null, bbox };
   }
 

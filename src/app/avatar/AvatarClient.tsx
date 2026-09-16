@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { MinifigStack } from "@/components/MinifigStack";
-import { PieceOrbit } from "@/components/PieceOrbit";
+import { Minifig3D, Piece3D } from "@/components/Minifig3D";
 
 type Piece = {
   id: string;
@@ -36,7 +35,30 @@ type PieceRequest = {
   to_name?: string;
 };
 
-const TABS = ["helmet", "hair", "head", "shirt", "pants"] as const;
+type Exclusive = {
+  id: string;
+  name: string;
+  quantity: number;
+  available: number;
+  isTaken: boolean;
+  helmet_id: string | null;
+  hair_id: string | null;
+  head_id: string | null;
+  shirt_id: string | null;
+  pants_id: string | null;
+  helmet_image?: string | null;
+  hair_image?: string | null;
+  head_image?: string | null;
+  shirt_image?: string | null;
+  pants_image?: string | null;
+  helmet_back?: string | null;
+  hair_back?: string | null;
+  head_back?: string | null;
+  shirt_back?: string | null;
+  pants_back?: string | null;
+};
+
+const TABS = ["exclusive", "helmet", "hair", "head", "shirt", "pants"] as const;
 
 export default function AvatarClient() {
   const router = useRouter();
@@ -73,16 +95,22 @@ export default function AvatarClient() {
   const [newPassword, setNewPassword] = useState("");
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountMsg, setAccountMsg] = useState("");
+  const [exclusives, setExclusives] = useState<Exclusive[]>([]);
+  const [exclusiveId, setExclusiveId] = useState<string | null>(null);
+  const [avatarImages, setAvatarImages] = useState<Record<string, string | null>>({});
 
   async function reloadPiecesAndRequests() {
-    const [piecesRes, reqRes] = await Promise.all([
+    const [piecesRes, reqRes, exRes] = await Promise.all([
       fetch("/api/avatar/pieces"),
       fetch("/api/piece-requests"),
+      fetch("/api/exclusive-minifigs"),
     ]);
     const p = await piecesRes.json();
     setPieces(p.pieces || []);
     const r = await reqRes.json();
     setIncoming(r.incoming || []);
+    const e = await exRes.json();
+    setExclusives(e.exclusives || []);
   }
 
   useEffect(() => {
@@ -91,7 +119,8 @@ export default function AvatarClient() {
       fetch("/api/avatar/pieces"),
       fetch("/api/avatar"),
       fetch("/api/piece-requests"),
-    ]).then(async ([meRes, piecesRes, avatarRes, reqRes]) => {
+      fetch("/api/exclusive-minifigs"),
+    ]).then(async ([meRes, piecesRes, avatarRes, reqRes, exRes]) => {
       const me = await meRes.json();
       if (!me.user) {
         router.replace("/auth");
@@ -116,23 +145,52 @@ export default function AvatarClient() {
           shirt_id: a.avatar.shirt_id,
           pants_id: a.avatar.pants_id,
         });
+        setExclusiveId(a.avatar.exclusive_id || null);
+        setAvatarImages({
+          helmet: a.avatar.helmet_image,
+          helmetBack: a.avatar.helmet_back,
+          hair: a.avatar.hair_image,
+          hairBack: a.avatar.hair_back,
+          head: a.avatar.head_image,
+          headBack: a.avatar.head_back,
+          shirt: a.avatar.shirt_image,
+          shirtBack: a.avatar.shirt_back,
+          pants: a.avatar.pants_image,
+          pantsBack: a.avatar.pants_back,
+        });
+        if (a.avatar.exclusive_id) setTab("exclusive");
       }
       const r = await reqRes.json();
       setIncoming(r.incoming || []);
+      const e = await exRes.json();
+      setExclusives(e.exclusives || []);
     });
   }, [router]);
 
-  const byTab = useMemo(() => pieces.filter((p) => p.category === tab), [pieces, tab]);
+  const byTab = useMemo(
+    () => (tab === "exclusive" ? [] : pieces.filter((p) => p.category === tab)),
+    [pieces, tab]
+  );
   const preview = useMemo(() => {
-    const find = (id: string | null) => pieces.find((p) => p.id === id)?.image_data;
+    const find = (id: string | null) => pieces.find((p) => p.id === id);
+    const helmet = find(sel.helmet_id);
+    const hair = find(sel.hair_id);
+    const head = find(sel.head_id);
+    const shirt = find(sel.shirt_id);
+    const pants = find(sel.pants_id);
     return {
-      helmet: find(sel.helmet_id),
-      hair: find(sel.hair_id),
-      head: find(sel.head_id),
-      shirt: find(sel.shirt_id),
-      pants: find(sel.pants_id),
+      helmet: helmet?.image_data || avatarImages.helmet || null,
+      hair: hair?.image_data || avatarImages.hair || null,
+      head: head?.image_data || avatarImages.head || null,
+      shirt: shirt?.image_data || avatarImages.shirt || null,
+      pants: pants?.image_data || avatarImages.pants || null,
+      helmetBack: helmet?.image_back || avatarImages.helmetBack || null,
+      hairBack: hair?.image_back || avatarImages.hairBack || null,
+      headBack: head?.image_back || avatarImages.headBack || null,
+      shirtBack: shirt?.image_back || avatarImages.shirtBack || null,
+      pantsBack: pants?.image_back || avatarImages.pantsBack || null,
     };
-  }, [pieces, sel]);
+  }, [pieces, sel, avatarImages]);
 
   async function save() {
     setSaving(true);
@@ -157,13 +215,56 @@ export default function AvatarClient() {
     setPreviewPiece(p);
     if (p.isTaken) return;
     const key = `${p.category}_id` as keyof Selection;
-    // Helmet and hair share the top slot — picking one clears the other
+    setExclusiveId(null);
     setSel((s) => {
       const next = { ...s, [key]: p.id };
       if (p.category === "helmet") next.hair_id = null;
       if (p.category === "hair") next.helmet_id = null;
       return next;
     });
+  }
+
+  async function chooseExclusive(ex: Exclusive) {
+    if (ex.isTaken && exclusiveId !== ex.id) {
+      setMsg("This exclusive minifig is unavailable");
+      return;
+    }
+    setMsg("");
+    setSaving(true);
+    const res = await fetch("/api/exclusive-minifigs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ exclusiveId: ex.id }),
+    });
+    const data = await res.json();
+    setSaving(false);
+    if (!res.ok) {
+      setMsg(data.error || "Could not equip exclusive");
+      return;
+    }
+    setExclusiveId(ex.id);
+    setSel({
+      helmet_id: ex.helmet_id,
+      hair_id: ex.hair_id,
+      head_id: ex.head_id,
+      shirt_id: ex.shirt_id,
+      pants_id: ex.pants_id,
+    });
+    setAvatarImages({
+      helmet: ex.helmet_image || null,
+      helmetBack: ex.helmet_back || null,
+      hair: ex.hair_image || null,
+      hairBack: ex.hair_back || null,
+      head: ex.head_image || null,
+      headBack: ex.head_back || null,
+      shirt: ex.shirt_image || null,
+      shirtBack: ex.shirt_back || null,
+      pants: ex.pants_image || null,
+      pantsBack: ex.pants_back || null,
+    });
+    setPreviewPiece(null);
+    setMsg("Exclusive minifig selected");
+    await reloadPiecesAndRequests();
   }
 
   async function requestPiece(p: Piece) {
@@ -338,21 +439,28 @@ export default function AvatarClient() {
       )}
 
       <section className="panel flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-        <MinifigStack
+        <Minifig3D
           helmet={preview.helmet}
           hair={preview.hair}
           head={preview.head}
           shirt={preview.shirt}
           pants={preview.pants}
-          size="lg"
+          helmetBack={preview.helmetBack}
+          hairBack={preview.hairBack}
+          headBack={preview.headBack}
+          shirtBack={preview.shirtBack}
+          pantsBack={preview.pantsBack}
+          className="h-80 w-full max-w-sm sm:h-[22rem] sm:w-52"
         />
         <div className="w-full flex-1 space-y-3">
           <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Avatar</h2>
           <p className="soft-copy">
-            Helmet or hair, head, shirt, and pants.
+            {exclusiveId
+              ? "Exclusive minifig selected. Parts cannot be swapped."
+              : "Choose parts or an exclusive minifig."}
           </p>
-          {previewPiece && (
-            <PieceOrbit
+          {previewPiece && !exclusiveId && (
+            <Piece3D
               front={previewPiece.image_data}
               back={previewPiece.image_back}
               label={previewPiece.label || previewPiece.category}
@@ -375,60 +483,110 @@ export default function AvatarClient() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {byTab.length === 0 && (
-          <p className="soft-copy col-span-full text-center">
-            No {tab} pieces available.
-          </p>
-        )}
-        {byTab.map((p) => {
-          const key = `${p.category}_id` as keyof Selection;
-          const active = sel[key] === p.id;
-          return (
-            <div
-              key={p.id}
-              className={`tile relative p-2 ${p.isTaken ? "piece-taken" : ""} ${
-                active ? "ring-4 ring-[var(--brick-blue)]" : ""
-              }`}
-            >
-              <button type="button" className="w-full text-left" onClick={() => choosePiece(p)}>
-                <div className="checker mb-2 flex h-28 items-center justify-center rounded-xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.image_data}
-                    alt={p.label || p.category}
-                    className="h-24 w-full object-contain"
-                  />
-                </div>
-                <p className="truncate text-sm font-extrabold">{p.label || p.category}</p>
+      {tab === "exclusive" ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {exclusives.length === 0 && (
+            <p className="soft-copy col-span-full text-center">No exclusive minifigs yet.</p>
+          )}
+          {exclusives.map((ex) => {
+            const active = exclusiveId === ex.id;
+            return (
+              <button
+                key={ex.id}
+                type="button"
+                disabled={ex.isTaken && !active}
+                onClick={() => chooseExclusive(ex)}
+                className={`tile space-y-2 p-3 text-left ${ex.isTaken && !active ? "piece-taken" : ""} ${
+                  active ? "ring-4 ring-[var(--brick-blue)]" : ""
+                }`}
+              >
+                <Minifig3D
+                  helmet={ex.helmet_image}
+                  hair={ex.hair_image}
+                  head={ex.head_image}
+                  shirt={ex.shirt_image}
+                  pants={ex.pants_image}
+                  helmetBack={ex.helmet_back}
+                  hairBack={ex.hair_back}
+                  headBack={ex.head_back}
+                  shirtBack={ex.shirt_back}
+                  pantsBack={ex.pants_back}
+                  autoRotate={false}
+                  className="h-52 w-full"
+                />
+                <p className="truncate text-sm font-extrabold">{ex.name}</p>
                 <p className="text-[11px] font-bold text-black/55">
-                  {p.isTaken
+                  {ex.isTaken && !active
                     ? "Taken"
-                    : `${p.available} available · ${p.quantity} total`}
+                    : `${ex.available} available · ${ex.quantity} total`}
                 </p>
               </button>
-              {p.isTaken && (
-                <button
-                  type="button"
-                  className="chip mt-2 min-h-10 w-full bg-[var(--brick-yellow)] text-xs"
-                  onClick={() => requestPiece(p)}
-                >
-                  Request
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {exclusiveId && (
+            <p className="soft-copy col-span-full text-center">
+              Clear the exclusive minifig by picking a part below.
+            </p>
+          )}
+          {byTab.length === 0 && (
+            <p className="soft-copy col-span-full text-center">
+              No {tab} pieces available.
+            </p>
+          )}
+          {byTab.map((p) => {
+            const key = `${p.category}_id` as keyof Selection;
+            const active = !exclusiveId && sel[key] === p.id;
+            return (
+              <div
+                key={p.id}
+                className={`tile relative p-2 ${p.isTaken ? "piece-taken" : ""} ${
+                  active ? "ring-4 ring-[var(--brick-blue)]" : ""
+                }`}
+              >
+                <button type="button" className="w-full text-left" onClick={() => choosePiece(p)}>
+                  <div className="checker mb-2 flex h-28 items-center justify-center rounded-xl">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.image_data}
+                      alt={p.label || p.category}
+                      className="h-24 w-full object-contain"
+                    />
+                  </div>
+                  <p className="truncate text-sm font-extrabold">{p.label || p.category}</p>
+                  <p className="text-[11px] font-bold text-black/55">
+                    {p.isTaken
+                      ? "Taken"
+                      : `${p.available} available · ${p.quantity} total`}
+                  </p>
                 </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                {p.isTaken && (
+                  <button
+                    type="button"
+                    className="chip mt-2 min-h-10 w-full bg-[var(--brick-yellow)] text-xs"
+                    onClick={() => requestPiece(p)}
+                  >
+                    Request
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      <button
-        type="button"
-        className="lego-btn lego-btn-yellow w-full"
-        disabled={saving}
-        onClick={save}
-      >
-        {saving ? "Saving…" : onboarding ? "Continue" : "Save avatar"}
-      </button>
+      {tab !== "exclusive" && (
+        <button
+          type="button"
+          className="lego-btn lego-btn-yellow w-full"
+          disabled={saving || Boolean(exclusiveId)}
+          onClick={save}
+        >
+          {saving ? "Saving…" : onboarding ? "Continue" : "Save avatar"}
+        </button>
+      )}
       {msg && <p className="text-center text-base font-extrabold">{msg}</p>}
     </AppShell>
   );
