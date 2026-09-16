@@ -1,7 +1,11 @@
-import { destroySession } from "@/lib/auth";
-import { jsonOk } from "@/lib/api";
+import { destroySession, buildClearSessionCookies } from "@/lib/auth";
+import { jsonOkWithCookies } from "@/lib/api";
 
 export async function POST() {
-  await destroySession();
-  return jsonOk({ ok: true });
+  try {
+    await destroySession();
+  } catch {
+    // Still clear cookies via headers if jar delete fails
+  }
+  return jsonOkWithCookies({ ok: true }, buildClearSessionCookies());
 }

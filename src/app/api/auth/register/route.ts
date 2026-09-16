@@ -1,11 +1,11 @@
 import {
-  createSession,
+  buildSessionCookies,
   findUserByName,
   hashPassword,
 } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { isAccessGateEnabled } from "@/lib/settings";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOkWithCookies } from "@/lib/api";
 
 export async function POST(req: Request) {
   try {
@@ -34,12 +34,19 @@ export async function POST(req: Request) {
       RETURNING id, name, role
     `;
     const user = rows[0] as { id: string; name: string; role: "player" };
-    await createSession({ id: user.id, name: user.name, role: user.role });
     await sql`
       INSERT INTO avatars (user_id) VALUES (${user.id})
       ON CONFLICT (user_id) DO NOTHING
     `;
-    return jsonOk({ id: user.id, name: user.name, role: user.role, needsAvatar: true });
+    const setCookies = await buildSessionCookies({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
+    return jsonOkWithCookies(
+      { id: user.id, name: user.name, role: user.role, needsAvatar: true },
+      setCookies
+    );
   } catch (e) {
     console.error(e);
     return jsonError("Could not create account", 500);

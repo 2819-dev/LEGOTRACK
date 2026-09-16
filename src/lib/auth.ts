@@ -19,14 +19,44 @@ export type SessionUser = {
   role: "admin" | "player";
 };
 
+function shouldSecureCookies() {
+  return (
+    process.env.NODE_ENV === "production" ||
+    process.env.CONTEXT === "production" ||
+    Boolean(process.env.URL?.startsWith("https"))
+  );
+}
+
 function cookieOpts(maxAge: number) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldSecureCookies(),
     path: "/",
     maxAge,
   };
+}
+
+function serializeCookie(name: string, value: string, maxAge: number) {
+  const parts = [
+    `${name}=${value}`,
+    "Path=/",
+    `Max-Age=${maxAge}`,
+    "HttpOnly",
+    "SameSite=Lax",
+  ];
+  if (shouldSecureCookies()) parts.push("Secure");
+  return parts.join("; ");
+}
+
+function clearCookie(name: string) {
+  const parts = [`${name}=`, "Path=/", "Max-Age=0", "HttpOnly", "SameSite=Lax"];
+  if (shouldSecureCookies()) parts.push("Secure");
+  return parts.join("; ");
+}
+
+export function buildClearSessionCookies() {
+  return [clearCookie(COOKIE), clearCookie(ACT_AS_COOKIE), clearCookie(PLAYER_MODE_COOKIE)];
 }
 
 export async function hashPassword(password: string) {
@@ -37,8 +67,8 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(user: SessionUser) {
-  const token = await new SignJWT({
+export async function createSessionToken(user: SessionUser) {
+  return new SignJWT({
     id: user.id,
     name: user.name,
     role: user.role,
@@ -47,11 +77,25 @@ export async function createSession(user: SessionUser) {
     .setIssuedAt()
     .setExpirationTime("30d")
     .sign(secretKey());
+}
 
+/** Set-Cookie headers for a fresh login (Netlify-safe). */
+export async function buildSessionCookies(user: SessionUser) {
+  const token = await createSessionToken(user);
+  return [
+    serializeCookie(COOKIE, token, 60 * 60 * 24 * 30),
+    clearCookie(ACT_AS_COOKIE),
+    clearCookie(PLAYER_MODE_COOKIE),
+  ];
+}
+
+export async function createSession(user: SessionUser) {
+  const token = await createSessionToken(user);
   const jar = await cookies();
   jar.set(COOKIE, token, cookieOpts(60 * 60 * 24 * 30));
   jar.delete(ACT_AS_COOKIE);
   jar.delete(PLAYER_MODE_COOKIE);
+  return token;
 }
 
 /** Refresh JWT name/role after admin edits (e.g. rename yourself). */

@@ -40,25 +40,25 @@ export default function AuthPage() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
         body: JSON.stringify({ name, password, kiosk }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Something went wrong");
+        setBusy(false);
         return;
       }
-      if (data.mustChangePassword) {
-        router.push("/change-password");
-      } else if (data.role === "admin") {
-        router.push("/admin");
-      } else if (mode === "register" || data.needsAvatar) {
-        router.push("/avatar?onboarding=1");
-      } else {
-        router.push("/home");
-      }
+      // Hard navigation so the session cookie is always sent on the next request
+      // (soft router.push can race ahead of Set-Cookie on Netlify).
+      let next = "/home";
+      if (data.mustChangePassword) next = "/change-password";
+      else if (data.role === "admin") next = "/admin";
+      else if (mode === "register" || data.needsAvatar) next = "/avatar?onboarding=1";
+      window.location.assign(next);
     } catch {
       setError("Network error");
-    } finally {
       setBusy(false);
     }
   }

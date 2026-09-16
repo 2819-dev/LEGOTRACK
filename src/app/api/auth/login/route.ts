@@ -1,6 +1,10 @@
-import { createSession, findUserByName, verifyPassword } from "@/lib/auth";
+import {
+  buildSessionCookies,
+  findUserByName,
+  verifyPassword,
+} from "@/lib/auth";
 import { isAccessGateEnabled } from "@/lib/settings";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOkWithCookies } from "@/lib/api";
 
 export async function POST(req: Request) {
   try {
@@ -21,13 +25,21 @@ export async function POST(req: Request) {
       return jsonError("Only admin can sign in from this device", 403);
     }
 
-    await createSession({ id: user.id, name: user.name, role: user.role });
-    return jsonOk({
+    const setCookies = await buildSessionCookies({
       id: user.id,
       name: user.name,
       role: user.role,
-      mustChangePassword: Boolean(user.must_change_password),
     });
+
+    return jsonOkWithCookies(
+      {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        mustChangePassword: Boolean(user.must_change_password),
+      },
+      setCookies
+    );
   } catch (e) {
     console.error(e);
     return jsonError("Login failed", 500);
