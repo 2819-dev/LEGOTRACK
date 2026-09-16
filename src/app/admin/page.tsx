@@ -495,8 +495,9 @@ export default function AdminPage() {
           <div>
             <h2 className="brand-title text-[clamp(1.35rem,3.5vw,1.75rem)]">Scan</h2>
             <p className="soft-copy mt-2 text-[1rem]">
-              Lay out many shirts, pants, helmets, or full minifigs on a plain floor. One photo
-              finds them all, cuts the floor away, counts duplicates, and saves transparent pieces.
+              Lay shirts, pants, helmets, or hair on a plain floor with gaps between them. We
+              identify each real LEGO part and save the clean catalog render — never the dirty
+              floor photo.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">

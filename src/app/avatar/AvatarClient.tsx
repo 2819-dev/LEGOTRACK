@@ -239,7 +239,7 @@ export default function AvatarClient() {
           {onboarding ? "Build your minifig" : "Me"}
         </h1>
         <p className="soft-copy mt-3">
-          Spin each piece in 3D, claim what’s free, and ask politely when something’s taken.
+          Spin the official LEGO catalog part. Free stock is up top; taken pieces sink to the bottom.
         </p>
       </section>
 

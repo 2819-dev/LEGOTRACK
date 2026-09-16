@@ -46,11 +46,12 @@ export async function POST(req: Request) {
 
     const saved = [];
     for (const piece of pieces) {
-      // Merge into existing stock of same category + color when possible
-      const existing = piece.colorKey
+      const existing = piece.partNum
         ? await sql`
             SELECT id, quantity FROM avatar_pieces
-            WHERE category = ${piece.category} AND color_key = ${piece.colorKey}
+            WHERE part_num = ${piece.partNum}
+              AND coalesce(brick_color, '') = coalesce(${piece.brickColor}, '')
+              AND category = ${piece.category}
             ORDER BY created_at ASC
             LIMIT 1
           `
@@ -65,18 +66,24 @@ export async function POST(req: Request) {
               label = ${piece.label},
               image_data = ${piece.imageDataUrl},
               image_back = ${piece.imageBackDataUrl},
+              color_key = ${piece.colorKey},
+              catalog_url = ${piece.catalogUrl},
+              part_num = ${piece.partNum},
+              brick_color = ${piece.brickColor},
               source_scan_id = ${scanId}
           WHERE id = ${id}
         `;
         const rows = await sql`
-          SELECT id, category, label, image_data, image_back, color_key, quantity, source_scan_id, created_at
+          SELECT id, category, label, image_data, image_back, color_key, quantity,
+                 part_num, catalog_url, brick_color, source_scan_id, created_at
           FROM avatar_pieces WHERE id = ${id}
         `;
         saved.push(rows[0]);
       } else {
         const rows = await sql`
           INSERT INTO avatar_pieces (
-            category, label, image_data, image_back, color_key, quantity, source_scan_id
+            category, label, image_data, image_back, color_key, quantity,
+            part_num, catalog_url, brick_color, source_scan_id
           )
           VALUES (
             ${piece.category},
@@ -85,9 +92,13 @@ export async function POST(req: Request) {
             ${piece.imageBackDataUrl},
             ${piece.colorKey},
             ${piece.quantity},
+            ${piece.partNum},
+            ${piece.catalogUrl},
+            ${piece.brickColor},
             ${scanId}
           )
-          RETURNING id, category, label, image_data, image_back, color_key, quantity, source_scan_id, created_at
+          RETURNING id, category, label, image_data, image_back, color_key, quantity,
+                    part_num, catalog_url, brick_color, source_scan_id, created_at
         `;
         saved.push(rows[0]);
       }

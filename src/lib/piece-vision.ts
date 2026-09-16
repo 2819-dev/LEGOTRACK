@@ -1,4 +1,9 @@
 import sharp from "sharp";
+import {
+  fetchCatalogPng,
+  identifyLegoPart,
+  mapBrickCategory,
+} from "@/lib/brickognize";
 
 export type PieceCategory = "helmet" | "hair" | "head" | "shirt" | "pants";
 
@@ -6,10 +11,14 @@ export type DetectedPiece = {
   category: PieceCategory;
   label: string;
   colorKey: string;
+  partNum: string;
+  catalogUrl: string;
+  brickColor: string | null;
+  /** Clean official catalog render — never the dirty floor photo */
   imageDataUrl: string;
-  /** Soft “other side” preview (horizontal flip) until a second photo is added */
   imageBackDataUrl: string;
   quantity: number;
+  score: number;
 };
 
 type Rgba = { data: Buffer; width: number; height: number };
@@ -22,41 +31,23 @@ function idx(x: number, y: number, w: number) {
   return (y * w + x) * 4;
 }
 
-function isFloorish(
-  r: number,
-  g: number,
-  b: number,
-  floor: { r: number; g: number; b: number },
-  tol = 42
-) {
-  const dr = Math.abs(r - floor.r);
-  const dg = Math.abs(g - floor.g);
-  const db = Math.abs(b - floor.b);
-  const lum = (r + g + b) / 3;
-  const floorLum = (floor.r + floor.g + floor.b) / 3;
-  // Wood / carpet / concrete floors: close to sampled edge color, or very bright washed-out
-  if (dr + dg + db < tol * 3) return true;
-  if (Math.abs(lum - floorLum) < 18 && dr + dg + db < tol * 4.5) return true;
-  return false;
-}
-
-function sampleFloorColor(img: Rgba) {
+function sampleFloor(img: Rgba) {
   const { data, width, height } = img;
-  const points = [
-    [4, 4],
-    [width - 5, 4],
-    [4, height - 5],
-    [width - 5, height - 5],
-    [width >> 1, 4],
-    [width >> 1, height - 5],
-    [4, height >> 1],
-    [width - 5, height >> 1],
+  const pts = [
+    [2, 2],
+    [width - 3, 2],
+    [2, height - 3],
+    [width - 3, height - 3],
+    [Math.floor(width * 0.25), 2],
+    [Math.floor(width * 0.75), 2],
+    [2, Math.floor(height * 0.5)],
+    [width - 3, Math.floor(height * 0.5)],
   ];
   let r = 0,
     g = 0,
     b = 0,
     n = 0;
-  for (const [x, y] of points) {
+  for (const [x, y] of pts) {
     const i = idx(x, y, width);
     r += data[i];
     g += data[i + 1];
@@ -66,8 +57,8 @@ function sampleFloorColor(img: Rgba) {
   return { r: r / n, g: g / n, b: b / n };
 }
 
-function buildObjectMask(img: Rgba) {
-  const floor = sampleFloorColor(img);
+function buildMask(img: Rgba) {
+  const floor = sampleFloor(img);
   const { data, width, height } = img;
   const mask = new Uint8Array(width * height);
   for (let y = 0; y < height; y++) {
@@ -77,57 +68,19 @@ function buildObjectMask(img: Rgba) {
       const g = data[i + 1];
       const b = data[i + 2];
       const a = data[i + 3];
-      if (a < 12) continue;
+      if (a < 20) continue;
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
       const sat = max === 0 ? 0 : (max - min) / max;
       const lum = (r + g + b) / 3;
-      // Keep saturated / dark plastic LEGO colors; drop floor
-      const plastic = sat > 0.16 || lum < 95 || (sat > 0.08 && lum < 170);
-      if (plastic && !isFloorish(r, g, b, floor)) {
-        mask[y * width + x] = 1;
-      }
+      const dr = Math.abs(r - floor.r) + Math.abs(g - floor.g) + Math.abs(b - floor.b);
+      const nearFloor = dr < 55;
+      // Real plastic: saturated OR distinctly darker than floor, and not floor-colored
+      const plastic = (sat > 0.22 || lum < floor.r * 0.55) && !nearFloor && sat > 0.08;
+      if (plastic) mask[y * width + x] = 1;
     }
   }
-  // Light dilate then erode to close studs/gaps
-  return morphClose(mask, width, height, 1);
-}
-
-function morphClose(mask: Uint8Array, w: number, h: number, r: number) {
-  const dil = new Uint8Array(mask.length);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let on = 0;
-      for (let dy = -r; dy <= r && !on; dy++) {
-        for (let dx = -r; dx <= r; dx++) {
-          const xx = x + dx;
-          const yy = y + dy;
-          if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
-          if (mask[yy * w + xx]) on = 1;
-        }
-      }
-      dil[y * w + x] = on;
-    }
-  }
-  const out = new Uint8Array(mask.length);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let on = 1;
-      for (let dy = -r; dy <= r && on; dy++) {
-        for (let dx = -r; dx <= r; dx++) {
-          const xx = x + dx;
-          const yy = y + dy;
-          if (xx < 0 || yy < 0 || xx >= w || yy >= h) {
-            on = 0;
-            break;
-          }
-          if (!dil[yy * w + xx]) on = 0;
-        }
-      }
-      out[y * w + x] = on;
-    }
-  }
-  return out;
+  return mask;
 }
 
 type Blob = {
@@ -136,32 +89,31 @@ type Blob = {
   maxX: number;
   maxY: number;
   area: number;
-  pixels: Array<[number, number]>;
 };
 
 function findBlobs(mask: Uint8Array, w: number, h: number): Blob[] {
   const seen = new Uint8Array(mask.length);
   const blobs: Blob[] = [];
-  const minArea = Math.max(400, (w * h) / 180);
+  const imgArea = w * h;
+  const minArea = Math.max(350, imgArea * 0.004);
+  const maxArea = imgArea * 0.18; // floor-sized blobs rejected
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const start = y * w + x;
       if (!mask[start] || seen[start]) continue;
-      const stack = [start];
+      const q = [start];
       seen[start] = 1;
       let minX = x,
         maxX = x,
         minY = y,
         maxY = y,
         area = 0;
-      const pixels: Array<[number, number]> = [];
-      while (stack.length) {
-        const p = stack.pop()!;
+      while (q.length) {
+        const p = q.pop()!;
         const px = p % w;
         const py = (p / w) | 0;
         area++;
-        pixels.push([px, py]);
         if (px < minX) minX = px;
         if (px > maxX) maxX = px;
         if (py < minY) minY = py;
@@ -178,160 +130,59 @@ function findBlobs(mask: Uint8Array, w: number, h: number): Blob[] {
           const ni = ny * w + nx;
           if (!mask[ni] || seen[ni]) continue;
           seen[ni] = 1;
-          stack.push(ni);
+          q.push(ni);
         }
       }
-      if (area >= minArea) {
-        blobs.push({ minX, minY, maxX, maxY, area, pixels });
-      }
+
+      const bw = maxX - minX + 1;
+      const bh = maxY - minY + 1;
+      const fill = area / Math.max(1, bw * bh);
+      const aspect = bh / Math.max(1, bw);
+
+      // Reject floor carpets, thin lines, and near-full-frame blobs
+      if (area < minArea || area > maxArea) continue;
+      if (fill < 0.28) continue;
+      if (aspect > 4.5 || aspect < 0.18) continue;
+      if (bw > w * 0.72 || bh > h * 0.72) continue;
+
+      blobs.push({ minX, minY, maxX, maxY, area });
     }
   }
-  return blobs.sort((a, b) => b.area - a.area);
+  return blobs.sort((a, b) => b.area - a.area).slice(0, 16);
 }
 
-async function cutoutBlob(img: Rgba, blob: Blob, mask: Uint8Array) {
-  const pad = 8;
+async function cropBlob(img: Rgba, blob: Blob, mask: Uint8Array) {
+  const pad = 6;
   const left = Math.max(0, blob.minX - pad);
   const top = Math.max(0, blob.minY - pad);
   const width = Math.min(img.width - left, blob.maxX - blob.minX + 1 + pad * 2);
   const height = Math.min(img.height - top, blob.maxY - blob.minY + 1 + pad * 2);
   const out = Buffer.alloc(width * height * 4, 0);
-
+  let opaque = 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const sx = left + x;
       const sy = top + y;
-      const mi = sy * img.width + sx;
-      const oi = (y * width + x) * 4;
-      if (!mask[mi]) continue;
+      if (!mask[sy * img.width + sx]) continue;
       const si = idx(sx, sy, img.width);
+      const oi = (y * width + x) * 4;
       out[oi] = img.data[si];
       out[oi + 1] = img.data[si + 1];
       out[oi + 2] = img.data[si + 2];
       out[oi + 3] = 255;
+      opaque++;
     }
   }
-
-  // Feather edges slightly for cleaner studs
-  const png = await sharp(out, { raw: { width, height, channels: 4 } })
-    .resize({
-      width: Math.min(420, Math.max(120, width)),
-      withoutEnlargement: false,
-    })
+  if (opaque < 200) return null;
+  return sharp(out, { raw: { width, height, channels: 4 } })
+    .resize({ width: 480, withoutEnlargement: false })
     .png()
     .toBuffer();
-
-  const back = await sharp(png).flop().png().toBuffer();
-  return { front: png, back, width, height };
-}
-
-function dominantColorKey(img: Rgba, blob: Blob, mask: Uint8Array) {
-  let r = 0,
-    g = 0,
-    b = 0,
-    n = 0;
-  for (const [x, y] of blob.pixels) {
-    if (!mask[y * img.width + x]) continue;
-    const i = idx(x, y, img.width);
-    r += img.data[i];
-    g += img.data[i + 1];
-    b += img.data[i + 2];
-    n++;
-  }
-  if (!n) return "unknown";
-  r = Math.round(r / n / 24) * 24;
-  g = Math.round(g / n / 24) * 24;
-  b = Math.round(b / n / 24) * 24;
-  return `${r},${g},${b}`;
-}
-
-function colorName(key: string) {
-  const [rs, gs, bs] = key.split(",").map(Number);
-  if ([rs, gs, bs].some((v) => Number.isNaN(v))) return "Color";
-  const max = Math.max(rs, gs, bs);
-  const min = Math.min(rs, gs, bs);
-  if (max < 55) return "Black";
-  if (min > 210) return "White";
-  if (rs > 180 && gs > 150 && bs < 90) return "Yellow";
-  if (rs > 170 && gs < 90 && bs < 90) return "Red";
-  if (rs < 90 && gs < 120 && bs > 150) return "Blue";
-  if (rs < 100 && gs > 140 && bs < 110) return "Green";
-  if (rs > 190 && gs > 100 && bs < 80) return "Orange";
-  if (rs > 140 && gs < 100 && bs > 140) return "Purple";
-  if (rs > 150 && gs > 100 && bs > 70 && rs - bs > 40) return "Brown";
-  return "Brick";
-}
-
-function classifyBlob(blob: Blob): "full" | PieceCategory {
-  const w = blob.maxX - blob.minX + 1;
-  const h = blob.maxY - blob.minY + 1;
-  const aspect = h / Math.max(1, w);
-  const fill = blob.area / Math.max(1, w * h);
-
-  // Tall figure → full minifig
-  if (aspect > 1.55 && fill > 0.22) return "full";
-  // Short wide → shirt / torso plate-ish
-  if (aspect < 0.85) return "shirt";
-  // Medium tall thin → pants / legs
-  if (aspect > 1.15 && aspect <= 1.55) return "pants";
-  // Small-ish square → head / helmet / hair
-  if (aspect >= 0.85 && aspect <= 1.25) {
-    // Darker/small top pieces often hair/helmet; default head for roundish
-    if (blob.area < 3500) return "helmet";
-    return "head";
-  }
-  if (aspect > 1.25) return "pants";
-  return "shirt";
-}
-
-const FULL_BANDS: Record<Exclude<PieceCategory, "helmet">, [number, number]> = {
-  hair: [0, 0.15],
-  head: [0.12, 0.34],
-  shirt: [0.32, 0.64],
-  pants: [0.62, 1],
-};
-
-async function splitFullMinifig(
-  frontPng: Buffer,
-  colorKey: string
-): Promise<DetectedPiece[]> {
-  const meta = await sharp(frontPng).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const { width, height } = meta.info;
-  const out: DetectedPiece[] = [];
-  const name = colorName(colorKey);
-
-  for (const category of ["hair", "head", "shirt", "pants"] as const) {
-    const [a, b] = FULL_BANDS[category];
-    const top = Math.floor(height * a);
-    const bot = Math.ceil(height * b);
-    const pieceH = Math.max(8, bot - top);
-    const slice = await sharp(frontPng)
-      .extract({ left: 0, top, width, height: pieceH })
-      .png()
-      .toBuffer();
-    // Drop nearly-empty slices (transparent)
-    const stats = await sharp(slice).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    let opaque = 0;
-    for (let i = 3; i < stats.data.length; i += 4) {
-      if (stats.data[i] > 20) opaque++;
-    }
-    if (opaque < 80) continue;
-    const back = await sharp(slice).flop().png().toBuffer();
-    out.push({
-      category,
-      label: `${name} ${category}`,
-      colorKey,
-      imageDataUrl: toDataUrl(slice),
-      imageBackDataUrl: toDataUrl(back),
-      quantity: 1,
-    });
-  }
-  return out;
 }
 
 /**
- * Floor-photo vision: find every plastic blob, cut it to transparent PNG,
- * classify, split full minifigs, and merge duplicates into quantity.
+ * Find separate objects on a floor photo, identify each with Brickognize,
+ * and store ONLY clean official catalog renders (never dirty floor pixels).
  */
 export async function detectPiecesFromFloorPhoto(input: Buffer): Promise<{
   previewDataUrl: string;
@@ -340,7 +191,7 @@ export async function detectPiecesFromFloorPhoto(input: Buffer): Promise<{
 }> {
   const normalized = await sharp(input)
     .rotate()
-    .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: false })
+    .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: false })
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -351,57 +202,92 @@ export async function detectPiecesFromFloorPhoto(input: Buffer): Promise<{
     height: normalized.info.height,
   };
 
-  const mask = buildObjectMask(img);
-  const blobs = findBlobs(mask, img.width, img.height).slice(0, 24);
+  const mask = buildMask(img);
+  const blobs = findBlobs(mask, img.width, img.height);
 
   const detected: DetectedPiece[] = [];
+  let rejected = 0;
 
   for (const blob of blobs) {
-    const cut = await cutoutBlob(img, blob, mask);
-    const colorKey = dominantColorKey(img, blob, mask);
-    const kind = classifyBlob(blob);
-    if (kind === "full") {
-      const parts = await splitFullMinifig(cut.front, colorKey);
-      detected.push(...parts);
-    } else {
-      const name = colorName(colorKey);
-      detected.push({
-        category: kind,
-        label: `${name} ${kind}`,
-        colorKey,
-        imageDataUrl: toDataUrl(cut.front),
-        imageBackDataUrl: toDataUrl(cut.back),
-        quantity: 1,
-      });
+    const crop = await cropBlob(img, blob, mask);
+    if (!crop) {
+      rejected++;
+      continue;
     }
+
+    let match;
+    try {
+      match = await identifyLegoPart(crop);
+    } catch (e) {
+      console.error(e);
+      rejected++;
+      continue;
+    }
+    if (!match) {
+      rejected++;
+      continue;
+    }
+
+    const category = mapBrickCategory(match.categoryRaw, match.name);
+    if (!category) {
+      rejected++;
+      continue;
+    }
+
+    const catalogPng = await fetchCatalogPng(match.imgUrl);
+    if (!catalogPng) {
+      rejected++;
+      continue;
+    }
+
+    const back = await sharp(catalogPng).flop().png().toBuffer();
+    const colorKey = `${match.partNum}|${match.colorId || "x"}`;
+    const label = match.colorName
+      ? `${match.colorName} ${match.name}`
+      : match.name;
+
+    detected.push({
+      category,
+      label,
+      colorKey,
+      partNum: match.partNum,
+      catalogUrl: match.imgUrl,
+      brickColor: match.colorName,
+      imageDataUrl: toDataUrl(catalogPng),
+      imageBackDataUrl: toDataUrl(back),
+      quantity: 1,
+      score: match.score,
+    });
   }
 
-  // Merge same category + color into quantity
+  // Merge identical part+color into quantity
   const merged = new Map<string, DetectedPiece>();
   for (const p of detected) {
     const key = `${p.category}|${p.colorKey}`;
     const existing = merged.get(key);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      merged.set(key, { ...p });
-    }
+    if (existing) existing.quantity += 1;
+    else merged.set(key, { ...p });
   }
+  const pieces = [...merged.values()].sort((a, b) => b.score - a.score);
 
-  const pieces = [...merged.values()];
   const preview = await sharp(input)
     .rotate()
     .resize({ width: 900, withoutEnlargement: true })
-    .png()
+    .jpeg({ quality: 80 })
     .toBuffer();
 
-  const note =
-    pieces.length === 0
-      ? "Couldn't find clear pieces — use brighter light, plain floor, and space them apart."
-      : `Found ${pieces.length} unique piece type${pieces.length === 1 ? "" : "s"} (quantities counted). Cut out on transparent backgrounds.`;
+  let note: string;
+  if (pieces.length === 0) {
+    note =
+      rejected > 0
+        ? "Found shapes on the floor, but none matched real LEGO minifig parts. Space pieces apart on a plain floor and try again."
+        : "No pieces found. Use a plain floor, good light, and leave gaps between each part.";
+  } else {
+    note = `Matched ${pieces.length} real LEGO part type${pieces.length === 1 ? "" : "s"} from the catalog (dirty floor photo is only used to identify — players see the clean part).`;
+  }
 
   return {
-    previewDataUrl: toDataUrl(preview),
+    previewDataUrl: `data:image/jpeg;base64,${preview.toString("base64")}`,
     pieces,
     note,
   };
