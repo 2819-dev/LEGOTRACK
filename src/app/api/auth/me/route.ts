@@ -43,13 +43,16 @@ export async function GET() {
   );
 
   const profileRows = await sql`
-    SELECT job FROM users WHERE id = ${effective.id} LIMIT 1
+    SELECT job, must_change_password FROM users WHERE id = ${effective.id} LIMIT 1
   `;
+  const profile = profileRows[0] as
+    | { job: string | null; must_change_password: boolean }
+    | undefined;
 
   return jsonOk({
     user: {
       ...effective,
-      job: (profileRows[0] as { job: string | null } | undefined)?.job ?? null,
+      job: profile?.job ?? null,
     },
     realUser: real,
     actingAs,
@@ -57,5 +60,6 @@ export async function GET() {
     canAdmin: real.role === "admin",
     playerMode,
     avatarComplete: complete,
+    mustChangePassword: Boolean(profile?.must_change_password) && !actingAs,
   });
 }

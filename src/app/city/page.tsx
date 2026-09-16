@@ -27,6 +27,7 @@ export default function CityPage() {
   const [canAdmin, setCanAdmin] = useState(false);
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [owners, setOwners] = useState<OwnerGroup[]>([]);
   const [filter, setFilter] = useState<"all" | "building" | "vehicle" | "set" | "other">("all");
 
@@ -58,7 +59,7 @@ export default function CityPage() {
     .filter((o) => o.items.length > 0);
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Who owns what</h1>
         <p className="soft-copy mt-3">

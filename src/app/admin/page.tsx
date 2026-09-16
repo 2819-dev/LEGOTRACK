@@ -12,6 +12,8 @@ type UserRow = {
   job: string | null;
   created_at: string;
   avatar_complete: boolean;
+  password_plain?: string | null;
+  must_change_password?: boolean;
 };
 
 type Piece = {
@@ -102,21 +104,15 @@ export default function AdminPage() {
     setEditDrafts((prev) => {
       const next = { ...prev };
       for (const person of list) {
-        if (!next[person.id]) {
-          next[person.id] = {
-            name: person.name,
-            role: person.role,
-            password: "",
-            job: person.job || "",
-          };
-        } else {
-          next[person.id] = {
-            ...next[person.id],
-            name: next[person.id].name || person.name,
-            role: next[person.id].role || person.role,
-            job: next[person.id].job ?? person.job ?? "",
-          };
-        }
+        const storedPass = person.password_plain || "";
+        const existing = next[person.id];
+        next[person.id] = {
+          name: existing?.name || person.name,
+          role: existing?.role || person.role,
+          job: existing?.job ?? person.job ?? "",
+          // Always show the stored password so admin can view/edit it.
+          password: storedPass,
+        };
       }
       return next;
     });
@@ -254,6 +250,9 @@ export default function AdminPage() {
     setBusy(true);
     setMsg("");
     const d = draft(id);
+    const person = users.find((u) => u.id === id);
+    const passwordChanged =
+      Boolean(d.password) && d.password !== (person?.password_plain || "");
     const res = await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -262,7 +261,7 @@ export default function AdminPage() {
         name: d.name,
         role: d.role,
         job: d.job,
-        password: d.password || undefined,
+        password: passwordChanged ? d.password : undefined,
       }),
     });
     const data = await res.json();
@@ -277,7 +276,7 @@ export default function AdminPage() {
         name: data.user.name,
         role: data.user.role,
         job: data.user.job || "",
-        password: "",
+        password: data.user.password_plain || d.password || "",
       },
     }));
     setMsg(`Saved ${data.user.name}`);
@@ -423,7 +422,7 @@ export default function AdminPage() {
       : process.env.NEXT_PUBLIC_APP_URL || "https://legotrack-449.netlify.app";
 
   return (
-    <AppShell user={user} isAdmin canAdmin actingAs={actingAs}>
+    <AppShell user={user} isAdmin canAdmin actingAs={actingAs} mustChangePassword={false}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Admin panel</h1>
         <p className="soft-copy mt-3">
@@ -705,7 +704,7 @@ export default function AdminPage() {
             />
             <input
               className="field"
-              placeholder="Password"
+              placeholder="Starter password"
               value={newPass}
               onChange={(e) => setNewPass(e.target.value)}
             />
@@ -717,6 +716,9 @@ export default function AdminPage() {
               <option value="player">Player</option>
               <option value="admin">Admin</option>
             </select>
+            <p className="text-sm font-bold text-black/55">
+              Players get this starter password and must pick a new one on first sign-in.
+            </p>
             <button
               type="button"
               className="lego-btn lego-btn-yellow w-full"
@@ -786,15 +788,20 @@ export default function AdminPage() {
                   </select>
                 </label>
                 <label className="block text-base font-extrabold">
-                  New password
+                  Password
                   <input
                     className="field mt-2"
-                    type="password"
-                    placeholder="Leave blank to keep"
+                    type="text"
+                    autoComplete="off"
                     value={d.password}
                     onChange={(e) => setDraft(u.id, { password: e.target.value })}
                   />
                 </label>
+                {u.must_change_password ? (
+                  <p className="text-sm font-bold text-black/55">
+                    Will be asked to change this on next sign-in.
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"

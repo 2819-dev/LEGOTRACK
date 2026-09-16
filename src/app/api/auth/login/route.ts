@@ -22,7 +22,12 @@ export async function POST(req: Request) {
     }
 
     await createSession({ id: user.id, name: user.name, role: user.role });
-    return jsonOk({ id: user.id, name: user.name, role: user.role });
+    return jsonOk({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      mustChangePassword: Boolean(user.must_change_password),
+    });
   } catch (e) {
     console.error(e);
     return jsonError("Login failed", 500);

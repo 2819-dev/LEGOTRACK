@@ -191,7 +191,7 @@ export async function requireAdmin() {
 export async function findUserByName(name: string) {
   const sql = getSql();
   const rows = await sql`
-    SELECT id, name, password_hash, role, created_at
+    SELECT id, name, password_hash, password_plain, must_change_password, role, created_at
     FROM users
     WHERE lower(name) = lower(${name})
     LIMIT 1

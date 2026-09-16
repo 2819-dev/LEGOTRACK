@@ -12,6 +12,8 @@ export type UserRow = {
   id: string;
   name: string;
   password_hash: string;
+  password_plain?: string | null;
+  must_change_password?: boolean;
   role: "admin" | "player";
   created_at: string;
 };

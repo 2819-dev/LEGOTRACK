@@ -36,6 +36,7 @@ export default function PersonProfilePage() {
   const [canAdmin, setCanAdmin] = useState(false);
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [person, setPerson] = useState<Person | null>(null);
   const [owns, setOwns] = useState<Thing[]>([]);
   const [builds, setBuilds] = useState<Thing[]>([]);
@@ -74,7 +75,7 @@ export default function PersonProfilePage() {
   const list = tab === "owns" ? owns : builds;
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <Link href="/people" className="chip mb-1 w-fit bg-white text-sm">
         ← People
       </Link>

@@ -14,6 +14,7 @@ export async function GET() {
     const sql = getSql();
     const users = await sql`
       SELECT u.id, u.name, u.role, u.job, u.created_at,
+        u.password_plain, u.must_change_password,
         ((a.helmet_id IS NOT NULL OR a.hair_id IS NOT NULL) AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
       FROM users u
       LEFT JOIN avatars a ON a.user_id = u.id
@@ -36,13 +37,17 @@ export async function POST(req: Request) {
     const password = String(body.password ?? "");
     const role = body.role === "admin" ? "admin" : "player";
     if (!name || !password) return jsonError("Name and password required");
+    if (password.length < 3) return jsonError("Password too short");
 
     const password_hash = await hashPassword(password);
     const sql = getSql();
+    // New players must change the starter password on first sign-in.
+    // Admins created here skip that prompt.
+    const mustChange = role === "player";
     const rows = await sql`
-      INSERT INTO users (name, password_hash, role)
-      VALUES (${name}, ${password_hash}, ${role})
-      RETURNING id, name, role, created_at
+      INSERT INTO users (name, password_hash, password_plain, role, must_change_password)
+      VALUES (${name}, ${password_hash}, ${password}, ${role}, ${mustChange})
+      RETURNING id, name, role, job, created_at, password_plain, must_change_password
     `;
     await sql`
       INSERT INTO avatars (user_id) VALUES (${rows[0].id})
@@ -69,7 +74,13 @@ export async function PATCH(req: Request) {
     const existing = await sql`SELECT id, name, role FROM users WHERE id = ${id} LIMIT 1`;
     if (!existing[0]) return jsonError("User not found", 404);
 
-    const updates: { name?: string; role?: string; password_hash?: string; job?: string | null } = {};
+    const updates: {
+      name?: string;
+      role?: string;
+      password_hash?: string;
+      password_plain?: string;
+      job?: string | null;
+    } = {};
 
     if (body.name != null) {
       const name = String(body.name).trim();
@@ -95,9 +106,16 @@ export async function PATCH(req: Request) {
       const password = String(body.password);
       if (password.length < 3) return jsonError("Password too short");
       updates.password_hash = await hashPassword(password);
+      updates.password_plain = password;
+      // Admin password edits never force a change prompt for ready accounts.
     }
 
-    if (!updates.name && updates.job === undefined && !updates.role && !updates.password_hash) {
+    if (
+      !updates.name &&
+      updates.job === undefined &&
+      !updates.role &&
+      !updates.password_hash
+    ) {
       return jsonError("Nothing to update");
     }
 
@@ -114,14 +132,20 @@ export async function PATCH(req: Request) {
     if (updates.role) {
       await sql`UPDATE users SET role = ${updates.role} WHERE id = ${id}`;
     }
-    if (updates.password_hash) {
-      await sql`UPDATE users SET password_hash = ${updates.password_hash} WHERE id = ${id}`;
+    if (updates.password_hash && updates.password_plain) {
+      await sql`
+        UPDATE users
+        SET password_hash = ${updates.password_hash},
+            password_plain = ${updates.password_plain}
+        WHERE id = ${id}
+      `;
     }
 
     await refreshSessionIfSelf(id);
 
     const rows = await sql`
       SELECT u.id, u.name, u.role, u.job, u.created_at,
+        u.password_plain, u.must_change_password,
         ((a.helmet_id IS NOT NULL OR a.hair_id IS NOT NULL) AND a.head_id IS NOT NULL AND a.shirt_id IS NOT NULL AND a.pants_id IS NOT NULL) AS avatar_complete
       FROM users u
       LEFT JOIN avatars a ON a.user_id = u.id

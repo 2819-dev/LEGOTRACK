@@ -19,6 +19,7 @@ export default function StandardsPage() {
   const [canAdmin, setCanAdmin] = useState(false);
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [standards, setStandards] = useState<Standard[]>([]);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function StandardsPage() {
   const exceptions = standards.filter((s) => s.is_exception);
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Community rules</h1>
         <p className="soft-copy mt-3">

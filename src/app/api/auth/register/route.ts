@@ -29,8 +29,8 @@ export async function POST(req: Request) {
     const password_hash = await hashPassword(password);
     const sql = getSql();
     const rows = await sql`
-      INSERT INTO users (name, password_hash, role)
-      VALUES (${name}, ${password_hash}, 'player')
+      INSERT INTO users (name, password_hash, password_plain, role, must_change_password)
+      VALUES (${name}, ${password_hash}, ${password}, 'player', false)
       RETURNING id, name, role
     `;
     const user = rows[0] as { id: string; name: string; role: "player" };

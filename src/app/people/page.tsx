@@ -27,6 +27,7 @@ export default function PeoplePage() {
   const [canAdmin, setCanAdmin] = useState(false);
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function PeoplePage() {
   if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">People</h1>
         <p className="soft-copy mt-3">

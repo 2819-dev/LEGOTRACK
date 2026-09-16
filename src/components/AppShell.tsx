@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LegoLogo } from "@/components/LegoLogo";
 
@@ -19,6 +20,7 @@ export function AppShell({
   actingAs = null,
   playerMode = false,
   canAdmin = false,
+  mustChangePassword = false,
 }: {
   children: React.ReactNode;
   user: { name: string; role: string };
@@ -26,10 +28,21 @@ export function AppShell({
   actingAs?: { name: string } | null;
   playerMode?: boolean;
   canAdmin?: boolean;
+  mustChangePassword?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const hidePlayerNav = pathname.startsWith("/admin");
+
+  useEffect(() => {
+    if (mustChangePassword && !pathname.startsWith("/change-password")) {
+      router.replace("/change-password");
+    }
+  }, [mustChangePassword, pathname, router]);
+
+  if (mustChangePassword && !pathname.startsWith("/change-password")) {
+    return <main className="loading-screen">Loading…</main>;
+  }
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });

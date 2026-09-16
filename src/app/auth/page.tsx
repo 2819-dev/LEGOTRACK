@@ -47,7 +47,9 @@ export default function AuthPage() {
         setError(data.error || "Something went wrong");
         return;
       }
-      if (data.role === "admin") {
+      if (data.mustChangePassword) {
+        router.push("/change-password");
+      } else if (data.role === "admin") {
         router.push("/admin");
       } else if (mode === "register" || data.needsAvatar) {
         router.push("/avatar?onboarding=1");

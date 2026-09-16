@@ -52,6 +52,7 @@ export default function AvatarClient() {
   const [canAdmin, setCanAdmin] = useState(false);
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [tab, setTab] = useState<(typeof TABS)[number]>("shirt");
   const [sel, setSel] = useState<Selection>({
@@ -103,6 +104,7 @@ export default function AvatarClient() {
       setCanAdmin(Boolean(me.canAdmin));
       setPlayerMode(Boolean(me.playerMode));
       setActingAs(me.actingAs || null);
+      setMustChangePassword(Boolean(me.mustChangePassword));
       const p = await piecesRes.json();
       setPieces(p.pieces || []);
       const a = await avatarRes.json();
@@ -233,6 +235,7 @@ export default function AvatarClient() {
       canAdmin={canAdmin}
       playerMode={playerMode}
       actingAs={actingAs}
+      mustChangePassword={mustChangePassword}
     >
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">

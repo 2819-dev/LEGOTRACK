@@ -36,7 +36,8 @@ export async function PATCH(req: Request) {
 
     const sql = getSql();
     const existing = await sql`
-      SELECT id, name, password_hash, role, job FROM users WHERE id = ${id} LIMIT 1
+      SELECT id, name, password_hash, role, job, must_change_password
+      FROM users WHERE id = ${id} LIMIT 1
     `;
     if (!existing[0]) return jsonError("Not found", 404);
     const row = existing[0] as {
@@ -45,9 +46,16 @@ export async function PATCH(req: Request) {
       password_hash: string;
       role: string;
       job: string | null;
+      must_change_password: boolean;
     };
 
-    const updates: { name?: string; password_hash?: string; job?: string | null } = {};
+    const updates: {
+      name?: string;
+      password_hash?: string;
+      password_plain?: string;
+      job?: string | null;
+      clearMustChange?: boolean;
+    } = {};
 
     if (body.name != null) {
       const name = String(body.name).trim();
@@ -64,15 +72,19 @@ export async function PATCH(req: Request) {
     if (body.password != null && String(body.password).length > 0) {
       const password = String(body.password);
       if (password.length < 3) return jsonError("Password too short");
-      // Players must confirm current password; admins editing themselves may skip
+      // Players must confirm current password unless forced to change on first sign-in.
+      // Admins editing themselves may skip.
       const isRealAdmin = real?.role === "admin" && real.id === id;
-      if (!isRealAdmin) {
+      const mustChange = Boolean(row.must_change_password);
+      if (!isRealAdmin && !mustChange) {
         const current = String(body.currentPassword ?? "");
         if (!current) return jsonError("Current password required");
         const ok = await verifyPassword(current, row.password_hash);
         if (!ok) return jsonError("Current password is wrong", 403);
       }
       updates.password_hash = await hashPassword(password);
+      updates.password_plain = password;
+      updates.clearMustChange = true;
     }
 
     if (!updates.name && updates.job === undefined && !updates.password_hash) {
@@ -87,8 +99,14 @@ export async function PATCH(req: Request) {
     if (updates.job !== undefined) {
       await sql`UPDATE users SET job = ${updates.job} WHERE id = ${id}`;
     }
-    if (updates.password_hash) {
-      await sql`UPDATE users SET password_hash = ${updates.password_hash} WHERE id = ${id}`;
+    if (updates.password_hash && updates.password_plain) {
+      await sql`
+        UPDATE users
+        SET password_hash = ${updates.password_hash},
+            password_plain = ${updates.password_plain},
+            must_change_password = false
+        WHERE id = ${id}
+      `;
     }
 
     await refreshSessionIfSelf(id);

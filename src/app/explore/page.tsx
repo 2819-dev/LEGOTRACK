@@ -25,6 +25,7 @@ export default function ExplorePage() {
   const [canAdmin, setCanAdmin] = useState(false);
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState<"all" | "building" | "vehicle" | "set" | "other">("all");
   const [selected, setSelected] = useState<Item | null>(null);
@@ -55,7 +56,7 @@ export default function ExplorePage() {
   const shown = items.filter((i) => filter === "all" || i.kind === filter);
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Explore</h1>
         <p className="soft-copy mt-3">

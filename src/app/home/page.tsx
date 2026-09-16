@@ -12,6 +12,7 @@ type Me = {
   playerMode?: boolean;
   actingAs?: { name: string } | null;
   avatarComplete: boolean;
+  mustChangePassword?: boolean;
 };
 
 type Mine = {
@@ -43,7 +44,7 @@ export default function HomePage() {
   }
 
   return (
-    <AppShell user={me.user} isAdmin={Boolean(me.isAdmin)} canAdmin={Boolean(me.canAdmin)} playerMode={Boolean(me.playerMode)} actingAs={me.actingAs || null}>
+    <AppShell user={me.user} isAdmin={Boolean(me.isAdmin)} canAdmin={Boolean(me.canAdmin)} playerMode={Boolean(me.playerMode)} actingAs={me.actingAs || null} mustChangePassword={Boolean(me.mustChangePassword)}>
       <section className="panel">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">City desk</h1>
         <p className="soft-copy mt-3">

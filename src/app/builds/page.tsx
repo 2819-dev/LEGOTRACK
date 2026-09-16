@@ -22,6 +22,7 @@ export default function BuildsPage() {
   const [canAdmin, setCanAdmin] = useState(false);
   const [playerMode, setPlayerMode] = useState(false);
   const [actingAs, setActingAs] = useState<{ name: string } | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [builds, setBuilds] = useState<Build[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -79,7 +80,7 @@ export default function BuildsPage() {
   if (!user) return <main className="loading-screen">Loading…</main>;
 
   return (
-    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs}>
+    <AppShell user={user} isAdmin={isAdmin} canAdmin={canAdmin} playerMode={playerMode} actingAs={actingAs} mustChangePassword={mustChangePassword}>
       <section className="panel space-y-4">
         <h1 className="brand-title text-[clamp(1.85rem,5vw,2.6rem)]">Submit a build</h1>
         <p className="soft-copy">
