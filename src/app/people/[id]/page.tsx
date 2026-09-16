@@ -53,6 +53,7 @@ export default function PersonProfilePage() {
           setCanAdmin(Boolean(me.canAdmin));
           setPlayerMode(Boolean(me.playerMode));
           setActingAs(me.actingAs || null);
+          setMustChangePassword(Boolean(me.mustChangePassword));
         }
       });
   }, [router]);

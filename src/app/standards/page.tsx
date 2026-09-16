@@ -33,6 +33,7 @@ export default function StandardsPage() {
           setCanAdmin(Boolean(me.canAdmin));
           setPlayerMode(Boolean(me.playerMode));
           setActingAs(me.actingAs || null);
+          setMustChangePassword(Boolean(me.mustChangePassword));
         }
       });
     fetch("/api/standards")
