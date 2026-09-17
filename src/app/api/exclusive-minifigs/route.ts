@@ -171,7 +171,14 @@ export async function PUT(req: Request) {
 
     if (!exclusiveId) {
       await sql`
-        UPDATE avatars SET exclusive_id = NULL, updated_at = now()
+        UPDATE avatars
+        SET exclusive_id = NULL,
+            helmet_id = NULL,
+            hair_id = NULL,
+            head_id = NULL,
+            shirt_id = NULL,
+            pants_id = NULL,
+            updated_at = now()
         WHERE user_id = ${session.id}
       `;
       return jsonOk({ ok: true, cleared: true });

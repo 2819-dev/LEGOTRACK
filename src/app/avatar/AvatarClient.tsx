@@ -165,11 +165,16 @@ export default function AvatarClient() {
   );
   const preview = useMemo(() => {
     const find = (id: string | null) => pieces.find((p) => p.id === id);
-    const part = (id: string | null, fallbackLabel?: string | null) => {
+    const part = (id: string | null) => {
       const p = find(id);
-      if (p) return { colorKey: p.color_key, label: p.label };
-      if (id || fallbackLabel) return { colorKey: null, label: fallbackLabel || null };
-      return null;
+      if (!p) return null;
+      return {
+        front: p.image_data,
+        back: p.image_back || p.image_data,
+        colorKey: p.color_key,
+        label: p.label,
+        category: p.category,
+      };
     };
     return {
       helmet: part(sel.helmet_id),
@@ -200,9 +205,20 @@ export default function AvatarClient() {
   }
 
   async function choosePiece(p: Piece) {
+    const key = `${p.category}_id` as keyof Selection;
+    const alreadySelected = sel[key] === p.id;
+
+    // Click again to deselect (even if the piece is taken by you)
+    if (alreadySelected && !exclusiveId) {
+      setPreviewPiece(null);
+      setSel((s) => ({ ...s, [key]: null }));
+      setMsg("Piece removed");
+      return;
+    }
+
     setPreviewPiece(p);
     if (p.isTaken) return;
-    const key = `${p.category}_id` as keyof Selection;
+
     setExclusiveId(null);
     setSel((s) => {
       const next = { ...s, [key]: p.id };
@@ -213,7 +229,35 @@ export default function AvatarClient() {
   }
 
   async function chooseExclusive(ex: Exclusive) {
-    if (ex.isTaken && exclusiveId !== ex.id) {
+    // Click again to unequip
+    if (exclusiveId === ex.id) {
+      setSaving(true);
+      setMsg("");
+      const res = await fetch("/api/exclusive-minifigs", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exclusiveId: null }),
+      });
+      setSaving(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMsg(data.error || "Could not clear exclusive");
+        return;
+      }
+      setExclusiveId(null);
+      setSel({
+        helmet_id: null,
+        hair_id: null,
+        head_id: null,
+        shirt_id: null,
+        pants_id: null,
+      });
+      setMsg("Exclusive minifig removed");
+      await reloadPiecesAndRequests();
+      return;
+    }
+
+    if (ex.isTaken) {
       setMsg("This exclusive minifig is unavailable");
       return;
     }
@@ -432,9 +476,11 @@ export default function AvatarClient() {
           </p>
           {previewPiece && !exclusiveId && (
             <Piece3D
-              category={previewPiece.category}
+              front={previewPiece.image_data}
+              back={previewPiece.image_back}
               colorKey={previewPiece.color_key}
               label={previewPiece.label}
+              category={previewPiece.category}
               className="h-56 w-full"
             />
           )}
@@ -461,10 +507,20 @@ export default function AvatarClient() {
           )}
           {exclusives.map((ex) => {
             const active = exclusiveId === ex.id;
-            const part = (id: string | null) => {
+            const part = (id: string | null, front?: string | null, back?: string | null) => {
               const p = pieces.find((x) => x.id === id);
-              if (p) return { colorKey: p.color_key, label: p.label };
-              if (id) return { colorKey: null, label: null };
+              if (p) {
+                return {
+                  front: p.image_data,
+                  back: p.image_back || p.image_data,
+                  colorKey: p.color_key,
+                  label: p.label,
+                  category: p.category,
+                };
+              }
+              if (front) {
+                return { front, back: back || front, colorKey: null, label: null };
+              }
               return null;
             };
             return (
@@ -478,19 +534,21 @@ export default function AvatarClient() {
                 }`}
               >
                 <Minifig3D
-                  helmet={part(ex.helmet_id)}
-                  hair={part(ex.hair_id)}
-                  head={part(ex.head_id)}
-                  shirt={part(ex.shirt_id)}
-                  pants={part(ex.pants_id)}
+                  helmet={part(ex.helmet_id, ex.helmet_image, ex.helmet_back)}
+                  hair={part(ex.hair_id, ex.hair_image, ex.hair_back)}
+                  head={part(ex.head_id, ex.head_image, ex.head_back)}
+                  shirt={part(ex.shirt_id, ex.shirt_image, ex.shirt_back)}
+                  pants={part(ex.pants_id, ex.pants_image, ex.pants_back)}
                   autoRotate={false}
                   className="h-52 w-full"
                 />
                 <p className="truncate text-sm font-extrabold">{ex.name}</p>
                 <p className="text-[11px] font-bold text-black/55">
-                  {ex.isTaken && !active
-                    ? "Taken"
-                    : `${ex.available} available · ${ex.quantity} total`}
+                  {active
+                    ? "Selected · tap again to remove"
+                    : ex.isTaken
+                      ? "Taken"
+                      : `${ex.available} available · ${ex.quantity} total`}
                 </p>
               </button>
             );
@@ -529,9 +587,11 @@ export default function AvatarClient() {
                   </div>
                   <p className="truncate text-sm font-extrabold">{p.label || p.category}</p>
                   <p className="text-[11px] font-bold text-black/55">
-                    {p.isTaken
-                      ? "Taken"
-                      : `${p.available} available · ${p.quantity} total`}
+                    {active
+                      ? "Selected · tap again to remove"
+                      : p.isTaken
+                        ? "Taken"
+                        : `${p.available} available · ${p.quantity} total`}
                   </p>
                 </button>
                 {p.isTaken && (

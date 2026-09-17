@@ -1,247 +1,90 @@
 "use client";
 
 import { Suspense, useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-import {
-  hairColor,
-  headColor,
-  helmetColor,
-  pantsColors,
-  torsoColors,
-  LEGO_PLASTIC,
-} from "@/lib/lego-colors";
+import { primaryPartColor, LEGO_PLASTIC } from "@/lib/lego-colors";
 
 export type PartInfo = {
+  front?: string | null;
+  back?: string | null;
   colorKey?: string | null;
   label?: string | null;
+  category?: "helmet" | "hair" | "head" | "shirt" | "pants";
 } | null;
 
-function plastic(color: string, opts?: { roughness?: number; metalness?: number }) {
-  return (
-    <meshStandardMaterial
-      color={color}
-      roughness={opts?.roughness ?? 0.38}
-      metalness={opts?.metalness ?? 0.04}
-    />
+function useCutoutTexture(url: string | null | undefined) {
+  const safe = url && url.length > 32 ? url : null;
+  const texture = useLoader(
+    THREE.TextureLoader,
+    safe ||
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
   );
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.premultiplyAlpha = true;
+  return safe ? texture : null;
 }
 
-function Stud({
+/**
+ * Real catalog/Brickognize cutout as a thin double-sided 3D token.
+ * Front + back images with alpha — looks like the actual part, not a fake mesh.
+ */
+function CutoutPart({
+  front,
+  back,
+  colorKey,
+  label,
   position,
-  color,
-  scale = 1,
+  size = [1, 1],
+  depth = 0.08,
 }: {
+  front?: string | null;
+  back?: string | null;
+  colorKey?: string | null;
+  label?: string | null;
   position: [number, number, number];
-  color: string;
-  scale?: number;
+  size?: [number, number];
+  depth?: number;
 }) {
+  const frontTex = useCutoutTexture(front);
+  const backTex = useCutoutTexture(back || front);
+  const edge = primaryPartColor(colorKey, label, LEGO_PLASTIC);
+
+  const materials = useMemo(() => {
+    if (!frontTex) return null;
+    const edgeMat = new THREE.MeshStandardMaterial({
+      color: edge,
+      roughness: 0.45,
+      metalness: 0.03,
+    });
+    const frontMat = new THREE.MeshStandardMaterial({
+      map: frontTex,
+      transparent: true,
+      alphaTest: 0.12,
+      roughness: 0.42,
+      metalness: 0.02,
+      side: THREE.FrontSide,
+    });
+    const backMat = new THREE.MeshStandardMaterial({
+      map: backTex || frontTex,
+      transparent: true,
+      alphaTest: 0.12,
+      roughness: 0.42,
+      metalness: 0.02,
+      side: THREE.FrontSide,
+    });
+    // box materials: +x -x +y -y +z -z
+    return [edgeMat, edgeMat, edgeMat, edgeMat, frontMat, backMat];
+  }, [frontTex, backTex, edge]);
+
+  if (!front || !materials) return null;
+
   return (
-    <mesh position={position} castShadow>
-      <cylinderGeometry args={[0.09 * scale, 0.09 * scale, 0.08 * scale, 20]} />
-      {plastic(color)}
+    <mesh position={position} castShadow material={materials}>
+      <boxGeometry args={[size[0], size[1], depth]} />
     </mesh>
-  );
-}
-
-function MinifigHead({
-  info,
-  position,
-}: {
-  info?: PartInfo;
-  position: [number, number, number];
-}) {
-  const color = headColor(info?.colorKey, info?.label);
-  return (
-    <group position={position}>
-      {/* Neck post */}
-      <mesh position={[0, -0.28, 0]} castShadow>
-        <cylinderGeometry args={[0.12, 0.13, 0.16, 16]} />
-        {plastic(color)}
-      </mesh>
-      {/* Head cylinder */}
-      <mesh position={[0, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.34, 0.34, 0.48, 28]} />
-        {plastic(color)}
-      </mesh>
-      {/* Soft top dome */}
-      <mesh position={[0, 0.24, 0]} castShadow>
-        <sphereGeometry args={[0.34, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        {plastic(color)}
-      </mesh>
-      <Stud position={[0, 0.34, 0]} color={color} scale={1.05} />
-      {/* Simple face print (painted, not a photo) */}
-      <group position={[0, 0.02, 0.335]}>
-        <mesh position={[-0.1, 0.06, 0]}>
-          <sphereGeometry args={[0.035, 12, 12]} />
-          {plastic("#111111", { roughness: 0.7 })}
-        </mesh>
-        <mesh position={[0.1, 0.06, 0]}>
-          <sphereGeometry args={[0.035, 12, 12]} />
-          {plastic("#111111", { roughness: 0.7 })}
-        </mesh>
-        <mesh position={[0, -0.08, 0]} rotation={[0, 0, 0]}>
-          <torusGeometry args={[0.08, 0.012, 8, 16, Math.PI]} />
-          {plastic("#111111", { roughness: 0.7 })}
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-function MinifigHair({
-  info,
-  position,
-}: {
-  info?: PartInfo;
-  position: [number, number, number];
-}) {
-  const color = hairColor(info?.colorKey, info?.label);
-  const label = (info?.label || "").toLowerCase();
-  const female = /female|mid-length|long|ponytail|part over/.test(label);
-
-  return (
-    <group position={position}>
-      {/* Cap over head */}
-      <mesh position={[0, 0.02, 0]} castShadow>
-        <sphereGeometry args={[0.38, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.62]} />
-        {plastic(color)}
-      </mesh>
-      {/* Front bangs */}
-      <mesh position={[0, 0.05, 0.28]} rotation={[0.35, 0, 0]} castShadow>
-        <boxGeometry args={[0.62, 0.18, 0.16]} />
-        {plastic(color)}
-      </mesh>
-      {female ? (
-        <>
-          <mesh position={[-0.28, -0.12, 0.05]} castShadow>
-            <boxGeometry args={[0.2, 0.42, 0.28]} />
-            {plastic(color)}
-          </mesh>
-          <mesh position={[0.3, -0.22, 0.02]} castShadow>
-            <boxGeometry args={[0.22, 0.55, 0.3]} />
-            {plastic(color)}
-          </mesh>
-        </>
-      ) : (
-        <mesh position={[0, 0.08, -0.2]} castShadow>
-          <boxGeometry args={[0.55, 0.22, 0.28]} />
-          {plastic(color)}
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-function MinifigHelmet({
-  info,
-  position,
-}: {
-  info?: PartInfo;
-  position: [number, number, number];
-}) {
-  const color = helmetColor(info?.colorKey, info?.label);
-  return (
-    <group position={position}>
-      <mesh position={[0, 0.05, 0]} castShadow>
-        <sphereGeometry args={[0.4, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.72]} />
-        {plastic(color)}
-      </mesh>
-      {/* Visor / brim */}
-      <mesh position={[0, -0.02, 0.3]} castShadow>
-        <boxGeometry args={[0.55, 0.12, 0.2]} />
-        {plastic(color)}
-      </mesh>
-      <mesh position={[0, 0.08, 0.22]} castShadow>
-        <boxGeometry args={[0.5, 0.16, 0.08]} />
-        {plastic("#1a1a1a", { roughness: 0.25, metalness: 0.35 })}
-      </mesh>
-    </group>
-  );
-}
-
-function MinifigTorso({
-  info,
-  position,
-}: {
-  info?: PartInfo;
-  position: [number, number, number];
-}) {
-  const { body, arms, hands } = torsoColors(info?.colorKey, info?.label);
-  return (
-    <group position={position}>
-      {/* Chest */}
-      <mesh castShadow>
-        <boxGeometry args={[0.78, 0.72, 0.42]} />
-        {plastic(body)}
-      </mesh>
-      {/* Slightly wider shoulders */}
-      <mesh position={[0, 0.28, 0]} castShadow>
-        <boxGeometry args={[0.88, 0.2, 0.44]} />
-        {plastic(body)}
-      </mesh>
-      {/* Neck socket ring */}
-      <mesh position={[0, 0.4, 0]} castShadow>
-        <cylinderGeometry args={[0.14, 0.16, 0.1, 16]} />
-        {plastic(body)}
-      </mesh>
-
-      {/* Arms */}
-      {([-1, 1] as const).map((side) => (
-        <group key={side} position={[side * 0.52, 0.12, 0]}>
-          <mesh castShadow>
-            <capsuleGeometry args={[0.11, 0.38, 6, 12]} />
-            {plastic(arms)}
-          </mesh>
-          {/* Hand */}
-          <mesh position={[0, -0.36, 0.02]} castShadow>
-            <boxGeometry args={[0.16, 0.14, 0.18]} />
-            {plastic(hands)}
-          </mesh>
-          <mesh position={[0, -0.36, 0.12]} castShadow>
-            <torusGeometry args={[0.07, 0.035, 8, 14, Math.PI]} />
-            {plastic(hands)}
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-function MinifigPants({
-  info,
-  position,
-}: {
-  info?: PartInfo;
-  position: [number, number, number];
-}) {
-  const { hips, left, right } = pantsColors(info?.colorKey, info?.label);
-  return (
-    <group position={position}>
-      <mesh castShadow>
-        <boxGeometry args={[0.78, 0.28, 0.42]} />
-        {plastic(hips)}
-      </mesh>
-      {/* Legs */}
-      <mesh position={[-0.2, -0.42, 0]} castShadow>
-        <boxGeometry args={[0.34, 0.58, 0.38]} />
-        {plastic(left)}
-      </mesh>
-      <mesh position={[0.2, -0.42, 0]} castShadow>
-        <boxGeometry args={[0.34, 0.58, 0.38]} />
-        {plastic(right)}
-      </mesh>
-      {/* Feet */}
-      <mesh position={[-0.2, -0.74, 0.06]} castShadow>
-        <boxGeometry args={[0.34, 0.12, 0.5]} />
-        {plastic(left)}
-      </mesh>
-      <mesh position={[0.2, -0.74, 0.06]} castShadow>
-        <boxGeometry args={[0.34, 0.12, 0.5]} />
-        {plastic(right)}
-      </mesh>
-    </group>
   );
 }
 
@@ -267,29 +110,53 @@ function AssembledFig({
   shirt?: PartInfo;
   pants?: PartInfo;
 }) {
-  const hasTop = Boolean(helmet || hair);
+  const top = helmet || hair;
   return (
-    <group position={[0, pants ? -0.2 : -0.45, 0]} scale={0.92}>
-      {pants ? <MinifigPants info={pants} position={[0, -0.55, 0]} /> : null}
-      {shirt ? <MinifigTorso info={shirt} position={[0, 0.2, 0]} /> : null}
-      {head ? <MinifigHead info={head} position={[0, 0.78, 0]} /> : null}
-      {helmet ? (
-        <MinifigHelmet info={helmet} position={[0, 1.02, 0]} />
-      ) : hair ? (
-        <MinifigHair info={hair} position={[0, 1.02, 0]} />
+    <group position={[0, -0.35, 0]}>
+      {pants?.front ? (
+        <CutoutPart
+          {...pants}
+          position={[0, -0.7, 0]}
+          size={[1.05, 1.05]}
+          depth={0.1}
+        />
       ) : null}
-      {!pants && !shirt && !head && !hasTop ? (
-        <mesh>
-          <boxGeometry args={[0.5, 0.5, 0.5]} />
-          {plastic(LEGO_PLASTIC)}
-        </mesh>
+      {shirt?.front ? (
+        <CutoutPart
+          {...shirt}
+          position={[0, 0.15, 0]}
+          size={[1.15, 1.15]}
+          depth={0.11}
+        />
+      ) : null}
+      {head?.front ? (
+        <CutoutPart
+          {...head}
+          position={[0, 0.95, 0]}
+          size={[0.85, 0.85]}
+          depth={0.12}
+        />
+      ) : null}
+      {top?.front ? (
+        <CutoutPart
+          {...top}
+          position={[0, 1.45, 0.01]}
+          size={[0.95, 0.7]}
+          depth={0.12}
+        />
       ) : null}
     </group>
   );
 }
 
+function asPart(v: PartInfo | string | null | undefined): PartInfo {
+  if (!v) return null;
+  if (typeof v === "string") return { front: v, back: v };
+  return v;
+}
+
 /**
- * Assembled minifig from real plastic-colored 3D parts (not catalog photos).
+ * Assembled minifig from the real scanned/catalog part images in 3D.
  */
 export function Minifig3D({
   helmet,
@@ -308,25 +175,24 @@ export function Minifig3D({
   className?: string;
   autoRotate?: boolean;
 }) {
-  const parts = useMemo(() => {
-    const asInfo = (v: PartInfo | string | null | undefined): PartInfo => {
-      if (!v) return null;
-      if (typeof v === "string") {
-        // legacy: image URL only — still show a default-colored part so UI isn't empty
-        return { colorKey: null, label: null };
-      }
-      return v;
-    };
-    return {
-      helmet: asInfo(helmet),
-      hair: asInfo(hair),
-      head: asInfo(head),
-      shirt: asInfo(shirt),
-      pants: asInfo(pants),
-    };
-  }, [helmet, hair, head, shirt, pants]);
+  const parts = useMemo(
+    () => ({
+      helmet: asPart(helmet),
+      hair: asPart(hair),
+      head: asPart(head),
+      shirt: asPart(shirt),
+      pants: asPart(pants),
+    }),
+    [helmet, hair, head, shirt, pants]
+  );
 
-  const hasAny = Boolean(parts.helmet || parts.hair || parts.head || parts.shirt || parts.pants);
+  const hasAny = Boolean(
+    parts.helmet?.front ||
+      parts.hair?.front ||
+      parts.head?.front ||
+      parts.shirt?.front ||
+      parts.pants?.front
+  );
 
   return (
     <div
@@ -338,16 +204,15 @@ export function Minifig3D({
         </p>
       )}
       <Canvas
-        camera={{ position: [1.15, 0.35, 3.4], fov: 34 }}
+        camera={{ position: [1.2, 0.2, 3.5], fov: 34 }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: true }}
         className="h-full w-full touch-none"
       >
         <color attach="background" args={["#eef2f7"]} />
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[3.5, 6, 4]} intensity={1.25} castShadow />
-        <directionalLight position={[-4, 2, -2]} intensity={0.4} />
-        <hemisphereLight args={["#ffffff", "#94a3b8", 0.35]} />
+        <ambientLight intensity={0.85} />
+        <directionalLight position={[3.5, 6, 4]} intensity={1.15} />
+        <directionalLight position={[-3, 2, -2]} intensity={0.4} />
         <Suspense fallback={null}>
           <IdleSpin enabled={autoRotate && hasAny}>
             <AssembledFig {...parts} />
@@ -357,9 +222,9 @@ export function Minifig3D({
           enablePan={false}
           minDistance={2.4}
           maxDistance={5.5}
-          minPolarAngle={0.7}
-          maxPolarAngle={Math.PI - 0.85}
-          target={[0, 0.05, 0]}
+          minPolarAngle={0.65}
+          maxPolarAngle={Math.PI - 0.8}
+          target={[0, 0.1, 0]}
         />
       </Canvas>
       <p className="pointer-events-none absolute bottom-2 left-0 right-0 text-center text-[10px] font-extrabold uppercase tracking-wide text-black/40">
@@ -369,62 +234,48 @@ export function Minifig3D({
   );
 }
 
-function SinglePartModel({
-  category,
-  info,
-}: {
-  category: "helmet" | "hair" | "head" | "shirt" | "pants";
-  info: PartInfo;
-}) {
-  switch (category) {
-    case "helmet":
-      return <MinifigHelmet info={info} position={[0, -0.15, 0]} />;
-    case "hair":
-      return <MinifigHair info={info} position={[0, -0.15, 0]} />;
-    case "head":
-      return <MinifigHead info={info} position={[0, 0, 0]} />;
-    case "shirt":
-      return <MinifigTorso info={info} position={[0, 0, 0]} />;
-    case "pants":
-      return <MinifigPants info={info} position={[0, 0.15, 0]} />;
-    default:
-      return null;
-  }
-}
-
 /**
- * Single piece as real 3D plastic geometry.
+ * Single real part cutout in 3D (front / sides / back).
  */
 export function Piece3D({
-  category,
+  front,
+  back,
   colorKey,
   label,
   className = "",
 }: {
-  category: "helmet" | "hair" | "head" | "shirt" | "pants";
+  front: string;
+  back?: string | null;
   colorKey?: string | null;
   label?: string | null;
+  category?: "helmet" | "hair" | "head" | "shirt" | "pants";
   className?: string;
 }) {
-  const info = { colorKey, label };
   return (
     <div
       className={`relative overflow-hidden rounded-2xl border-3 border-black bg-white ${className}`}
       role="img"
-      aria-label={label || category}
+      aria-label={label || "Piece"}
     >
+      <div className="checker absolute inset-3 rounded-xl opacity-25" aria-hidden />
       <Canvas
-        camera={{ position: [1.1, 0.4, 2.4], fov: 40 }}
+        camera={{ position: [1.0, 0.15, 2.5], fov: 40 }}
         dpr={[1, 1.75]}
         className="relative z-10 h-full w-full touch-none"
       >
-        <color attach="background" args={["#f8fafc"]} />
-        <ambientLight intensity={0.75} />
-        <directionalLight position={[2.5, 3, 4]} intensity={1.2} />
-        <directionalLight position={[-2, 1, -1]} intensity={0.35} />
+        <ambientLight intensity={0.9} />
+        <directionalLight position={[2.5, 3, 4]} intensity={1.15} />
         <Suspense fallback={null}>
           <IdleSpin enabled>
-            <SinglePartModel category={category} info={info} />
+            <CutoutPart
+              front={front}
+              back={back}
+              colorKey={colorKey}
+              label={label}
+              position={[0, 0, 0]}
+              size={[1.45, 1.45]}
+              depth={0.1}
+            />
           </IdleSpin>
         </Suspense>
         <OrbitControls enablePan={false} minDistance={1.5} maxDistance={4} />
