@@ -11,6 +11,8 @@ type Piece = {
   label: string | null;
   image_data: string;
   image_back?: string | null;
+  color_key?: string | null;
+  exclusive_minifig_id?: string | null;
   quantity: number;
   taken_count: number;
   available: number;
@@ -97,11 +99,10 @@ export default function AvatarClient() {
   const [accountMsg, setAccountMsg] = useState("");
   const [exclusives, setExclusives] = useState<Exclusive[]>([]);
   const [exclusiveId, setExclusiveId] = useState<string | null>(null);
-  const [avatarImages, setAvatarImages] = useState<Record<string, string | null>>({});
 
   async function reloadPiecesAndRequests() {
     const [piecesRes, reqRes, exRes] = await Promise.all([
-      fetch("/api/avatar/pieces"),
+      fetch("/api/avatar/pieces?includeExclusive=1"),
       fetch("/api/piece-requests"),
       fetch("/api/exclusive-minifigs"),
     ]);
@@ -116,7 +117,7 @@ export default function AvatarClient() {
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me"),
-      fetch("/api/avatar/pieces"),
+      fetch("/api/avatar/pieces?includeExclusive=1"),
       fetch("/api/avatar"),
       fetch("/api/piece-requests"),
       fetch("/api/exclusive-minifigs"),
@@ -146,18 +147,6 @@ export default function AvatarClient() {
           pants_id: a.avatar.pants_id,
         });
         setExclusiveId(a.avatar.exclusive_id || null);
-        setAvatarImages({
-          helmet: a.avatar.helmet_image,
-          helmetBack: a.avatar.helmet_back,
-          hair: a.avatar.hair_image,
-          hairBack: a.avatar.hair_back,
-          head: a.avatar.head_image,
-          headBack: a.avatar.head_back,
-          shirt: a.avatar.shirt_image,
-          shirtBack: a.avatar.shirt_back,
-          pants: a.avatar.pants_image,
-          pantsBack: a.avatar.pants_back,
-        });
         if (a.avatar.exclusive_id) setTab("exclusive");
       }
       const r = await reqRes.json();
@@ -168,29 +157,28 @@ export default function AvatarClient() {
   }, [router]);
 
   const byTab = useMemo(
-    () => (tab === "exclusive" ? [] : pieces.filter((p) => p.category === tab)),
+    () =>
+      tab === "exclusive"
+        ? []
+        : pieces.filter((p) => p.category === tab && !p.exclusive_minifig_id),
     [pieces, tab]
   );
   const preview = useMemo(() => {
     const find = (id: string | null) => pieces.find((p) => p.id === id);
-    const helmet = find(sel.helmet_id);
-    const hair = find(sel.hair_id);
-    const head = find(sel.head_id);
-    const shirt = find(sel.shirt_id);
-    const pants = find(sel.pants_id);
-    return {
-      helmet: helmet?.image_data || avatarImages.helmet || null,
-      hair: hair?.image_data || avatarImages.hair || null,
-      head: head?.image_data || avatarImages.head || null,
-      shirt: shirt?.image_data || avatarImages.shirt || null,
-      pants: pants?.image_data || avatarImages.pants || null,
-      helmetBack: helmet?.image_back || avatarImages.helmetBack || null,
-      hairBack: hair?.image_back || avatarImages.hairBack || null,
-      headBack: head?.image_back || avatarImages.headBack || null,
-      shirtBack: shirt?.image_back || avatarImages.shirtBack || null,
-      pantsBack: pants?.image_back || avatarImages.pantsBack || null,
+    const part = (id: string | null, fallbackLabel?: string | null) => {
+      const p = find(id);
+      if (p) return { colorKey: p.color_key, label: p.label };
+      if (id || fallbackLabel) return { colorKey: null, label: fallbackLabel || null };
+      return null;
     };
-  }, [pieces, sel, avatarImages]);
+    return {
+      helmet: part(sel.helmet_id),
+      hair: part(sel.hair_id),
+      head: part(sel.head_id),
+      shirt: part(sel.shirt_id),
+      pants: part(sel.pants_id),
+    };
+  }, [pieces, sel]);
 
   async function save() {
     setSaving(true);
@@ -249,18 +237,6 @@ export default function AvatarClient() {
       head_id: ex.head_id,
       shirt_id: ex.shirt_id,
       pants_id: ex.pants_id,
-    });
-    setAvatarImages({
-      helmet: ex.helmet_image || null,
-      helmetBack: ex.helmet_back || null,
-      hair: ex.hair_image || null,
-      hairBack: ex.hair_back || null,
-      head: ex.head_image || null,
-      headBack: ex.head_back || null,
-      shirt: ex.shirt_image || null,
-      shirtBack: ex.shirt_back || null,
-      pants: ex.pants_image || null,
-      pantsBack: ex.pants_back || null,
     });
     setPreviewPiece(null);
     setMsg("Exclusive minifig selected");
@@ -445,11 +421,6 @@ export default function AvatarClient() {
           head={preview.head}
           shirt={preview.shirt}
           pants={preview.pants}
-          helmetBack={preview.helmetBack}
-          hairBack={preview.hairBack}
-          headBack={preview.headBack}
-          shirtBack={preview.shirtBack}
-          pantsBack={preview.pantsBack}
           className="h-80 w-full max-w-sm sm:h-[22rem] sm:w-52"
         />
         <div className="w-full flex-1 space-y-3">
@@ -461,9 +432,9 @@ export default function AvatarClient() {
           </p>
           {previewPiece && !exclusiveId && (
             <Piece3D
-              front={previewPiece.image_data}
-              back={previewPiece.image_back}
-              label={previewPiece.label || previewPiece.category}
+              category={previewPiece.category}
+              colorKey={previewPiece.color_key}
+              label={previewPiece.label}
               className="h-56 w-full"
             />
           )}
@@ -490,6 +461,12 @@ export default function AvatarClient() {
           )}
           {exclusives.map((ex) => {
             const active = exclusiveId === ex.id;
+            const part = (id: string | null) => {
+              const p = pieces.find((x) => x.id === id);
+              if (p) return { colorKey: p.color_key, label: p.label };
+              if (id) return { colorKey: null, label: null };
+              return null;
+            };
             return (
               <button
                 key={ex.id}
@@ -501,16 +478,11 @@ export default function AvatarClient() {
                 }`}
               >
                 <Minifig3D
-                  helmet={ex.helmet_image}
-                  hair={ex.hair_image}
-                  head={ex.head_image}
-                  shirt={ex.shirt_image}
-                  pants={ex.pants_image}
-                  helmetBack={ex.helmet_back}
-                  hairBack={ex.hair_back}
-                  headBack={ex.head_back}
-                  shirtBack={ex.shirt_back}
-                  pantsBack={ex.pants_back}
+                  helmet={part(ex.helmet_id)}
+                  hair={part(ex.hair_id)}
+                  head={part(ex.head_id)}
+                  shirt={part(ex.shirt_id)}
+                  pants={part(ex.pants_id)}
                   autoRotate={false}
                   className="h-52 w-full"
                 />
