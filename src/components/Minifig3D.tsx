@@ -269,7 +269,7 @@ function AssembledFig({
 }) {
   const hasTop = Boolean(helmet || hair);
   return (
-    <group position={[0, -0.05, 0]}>
+    <group position={[0, pants ? -0.2 : -0.45, 0]} scale={0.92}>
       {pants ? <MinifigPants info={pants} position={[0, -0.55, 0]} /> : null}
       {shirt ? <MinifigTorso info={shirt} position={[0, 0.2, 0]} /> : null}
       {head ? <MinifigHead info={head} position={[0, 0.78, 0]} /> : null}
@@ -278,7 +278,6 @@ function AssembledFig({
       ) : hair ? (
         <MinifigHair info={hair} position={[0, 1.02, 0]} />
       ) : null}
-      {/* Placeholder studs when empty so empty state still feels 3D */}
       {!pants && !shirt && !head && !hasTop ? (
         <mesh>
           <boxGeometry args={[0.5, 0.5, 0.5]} />
@@ -339,7 +338,7 @@ export function Minifig3D({
         </p>
       )}
       <Canvas
-        camera={{ position: [0.9, 0.55, 3.1], fov: 36 }}
+        camera={{ position: [1.15, 0.35, 3.4], fov: 34 }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: true }}
         className="h-full w-full touch-none"
@@ -356,11 +355,11 @@ export function Minifig3D({
         </Suspense>
         <OrbitControls
           enablePan={false}
-          minDistance={2.2}
-          maxDistance={5}
-          minPolarAngle={0.55}
-          maxPolarAngle={Math.PI - 0.65}
-          target={[0, 0.15, 0]}
+          minDistance={2.4}
+          maxDistance={5.5}
+          minPolarAngle={0.7}
+          maxPolarAngle={Math.PI - 0.85}
+          target={[0, 0.05, 0]}
         />
       </Canvas>
       <p className="pointer-events-none absolute bottom-2 left-0 right-0 text-center text-[10px] font-extrabold uppercase tracking-wide text-black/40">
