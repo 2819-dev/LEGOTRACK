@@ -15,8 +15,20 @@ function wantsForm(req: Request) {
   );
 }
 
+function publicOrigin(req: Request) {
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
+  // Prefer the real site host over a deploy-specific *.netlify.app URL
+  if (forwardedHost && !forwardedHost.includes("--")) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+  if (process.env.URL) return process.env.URL;
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  return new URL(req.url).origin;
+}
+
 function redirectTo(req: Request, path: string) {
-  return NextResponse.redirect(new URL(path, req.url), 303);
+  return NextResponse.redirect(new URL(path, publicOrigin(req)), 303);
 }
 
 export async function POST(req: Request) {
