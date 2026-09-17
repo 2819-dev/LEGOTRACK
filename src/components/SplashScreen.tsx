@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { LegoLogo } from "@/components/LegoLogo";
 
@@ -79,7 +79,6 @@ function RayBurst() {
 }
 
 export function SplashScreen() {
-  const router = useRouter();
   // Two stable layers: swap which is visible with a real crossfade.
   const [layerA, setLayerA] = useState(0);
   const [layerB, setLayerB] = useState(1);
@@ -164,13 +163,12 @@ export function SplashScreen() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => router.push("/auth")}
-        className="lego-btn lego-btn-yellow relative z-30 mt-5 w-full max-w-sm"
+      <Link
+        href="/auth"
+        className="lego-btn lego-btn-yellow relative z-30 mt-5 w-full max-w-sm text-center"
       >
         Continue
-      </button>
+      </Link>
     </main>
   );
 }
