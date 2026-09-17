@@ -594,7 +594,7 @@ export default function AvatarClient() {
                         : `${p.available} available · ${p.quantity} total`}
                   </p>
                 </button>
-                {p.isTaken && (
+                {p.isTaken && !active && (
                   <button
                     type="button"
                     className="chip mt-2 min-h-10 w-full bg-[var(--brick-yellow)] text-xs"
