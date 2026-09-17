@@ -8,7 +8,7 @@ import {
   type BrickMatch,
 } from "@/lib/brickognize";
 
-export type PieceCategory = "helmet" | "hair" | "head" | "shirt" | "pants";
+export type PieceCategory = "helmet" | "hair" | "head" | "shirt" | "pants" | "accessory";
 
 export type DetectedPiece = {
   category: PieceCategory;

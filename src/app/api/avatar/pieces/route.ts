@@ -20,7 +20,7 @@ export async function GET(req: Request) {
           (
             SELECT count(*)::int FROM avatars a
             WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
-               OR a.shirt_id = p.id OR a.pants_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id OR a.accessory_id = p.id
           ) AS taken_count
         FROM avatar_pieces p
         WHERE p.category = ${category}
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
           (
             SELECT count(*)::int FROM avatars a
             WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
-               OR a.shirt_id = p.id OR a.pants_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id OR a.accessory_id = p.id
           ) AS taken_count
         FROM avatar_pieces p
         WHERE p.category = ${category}
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
           (
             SELECT count(*)::int FROM avatars a
             WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
-               OR a.shirt_id = p.id OR a.pants_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id OR a.accessory_id = p.id
           ) AS taken_count
         FROM avatar_pieces p
         ORDER BY p.category, p.created_at DESC
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
           (
             SELECT count(*)::int FROM avatars a
             WHERE a.helmet_id = p.id OR a.hair_id = p.id OR a.head_id = p.id
-               OR a.shirt_id = p.id OR a.pants_id = p.id
+               OR a.shirt_id = p.id OR a.pants_id = p.id OR a.accessory_id = p.id
           ) AS taken_count
         FROM avatar_pieces p
         WHERE p.exclusive_minifig_id IS NULL

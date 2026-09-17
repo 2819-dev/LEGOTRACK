@@ -7,6 +7,7 @@ export function MinifigStack({
   head,
   shirt,
   pants,
+  accessory,
   size = "md",
 }: {
   helmet?: string | null;
@@ -14,6 +15,7 @@ export function MinifigStack({
   head?: string | null;
   shirt?: string | null;
   pants?: string | null;
+  accessory?: string | null;
   size?: "sm" | "md" | "lg";
 }) {
   const dims =
@@ -24,6 +26,7 @@ export function MinifigStack({
         : "h-56 w-36";
 
   const top = helmet || hair;
+  const hasAny = Boolean(top || head || shirt || pants || accessory);
 
   return (
     <div
@@ -34,21 +37,25 @@ export function MinifigStack({
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-1 py-2">
         {top ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={top} alt="" className="h-[16%] w-full object-contain" />
+          <img src={top} alt="" className="h-[15%] w-full object-contain" />
         ) : null}
         {head ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={head} alt="" className="-mt-1 h-[26%] w-full object-contain" />
+          <img src={head} alt="" className="-mt-1 h-[24%] w-full object-contain" />
+        ) : null}
+        {accessory ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={accessory} alt="" className="-mt-1 h-[14%] w-full object-contain" />
         ) : null}
         {shirt ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shirt} alt="" className="-mt-1 h-[30%] w-full object-contain" />
+          <img src={shirt} alt="" className="-mt-1 h-[26%] w-full object-contain" />
         ) : null}
         {pants ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={pants} alt="" className="-mt-1 h-[28%] w-full object-contain" />
+          <img src={pants} alt="" className="-mt-1 h-[24%] w-full object-contain" />
         ) : null}
-        {!top && !head && !shirt && !pants && (
+        {!hasAny && (
           <p className="text-xs font-extrabold text-black/35">No avatar</p>
         )}
       </div>

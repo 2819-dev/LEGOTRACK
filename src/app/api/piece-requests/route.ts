@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       FROM avatars a
       JOIN users u ON u.id = a.user_id
       WHERE a.helmet_id = ${pieceId} OR a.hair_id = ${pieceId} OR a.head_id = ${pieceId}
-         OR a.shirt_id = ${pieceId} OR a.pants_id = ${pieceId}
+         OR a.shirt_id = ${pieceId} OR a.pants_id = ${pieceId} OR a.accessory_id = ${pieceId}
       LIMIT 1
     `;
     if (!holders[0]) return jsonError("This piece is not currently in use", 400);
@@ -122,6 +122,7 @@ export async function PATCH(req: Request) {
         head_id = CASE WHEN head_id = ${pieceId} THEN NULL ELSE head_id END,
         shirt_id = CASE WHEN shirt_id = ${pieceId} THEN NULL ELSE shirt_id END,
         pants_id = CASE WHEN pants_id = ${pieceId} THEN NULL ELSE pants_id END,
+        accessory_id = CASE WHEN accessory_id = ${pieceId} THEN NULL ELSE accessory_id END,
         updated_at = now()
       WHERE user_id = ${user.id}
     `;

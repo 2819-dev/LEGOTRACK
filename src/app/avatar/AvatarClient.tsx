@@ -7,7 +7,7 @@ import { Minifig3D, Piece3D } from "@/components/Minifig3D";
 
 type Piece = {
   id: string;
-  category: "helmet" | "hair" | "head" | "shirt" | "pants";
+  category: "helmet" | "hair" | "head" | "shirt" | "pants" | "accessory";
   label: string | null;
   image_data: string;
   image_back?: string | null;
@@ -25,6 +25,7 @@ type Selection = {
   head_id: string | null;
   shirt_id: string | null;
   pants_id: string | null;
+  accessory_id: string | null;
 };
 
 type PieceRequest = {
@@ -48,19 +49,22 @@ type Exclusive = {
   head_id: string | null;
   shirt_id: string | null;
   pants_id: string | null;
+  accessory_id: string | null;
   helmet_image?: string | null;
   hair_image?: string | null;
   head_image?: string | null;
   shirt_image?: string | null;
   pants_image?: string | null;
+  accessory_image?: string | null;
   helmet_back?: string | null;
   hair_back?: string | null;
   head_back?: string | null;
   shirt_back?: string | null;
   pants_back?: string | null;
+  accessory_back?: string | null;
 };
 
-const TABS = ["exclusive", "helmet", "hair", "head", "shirt", "pants"] as const;
+const TABS = ["exclusive", "helmet", "hair", "head", "accessory", "shirt", "pants"] as const;
 
 export default function AvatarClient() {
   const router = useRouter();
@@ -85,6 +89,7 @@ export default function AvatarClient() {
     head_id: null,
     shirt_id: null,
     pants_id: null,
+    accessory_id: null,
   });
   const [previewPiece, setPreviewPiece] = useState<Piece | null>(null);
   const [saving, setSaving] = useState(false);
@@ -145,6 +150,7 @@ export default function AvatarClient() {
           head_id: a.avatar.head_id,
           shirt_id: a.avatar.shirt_id,
           pants_id: a.avatar.pants_id,
+          accessory_id: a.avatar.accessory_id,
         });
         setExclusiveId(a.avatar.exclusive_id || null);
         if (a.avatar.exclusive_id) setTab("exclusive");
@@ -182,6 +188,7 @@ export default function AvatarClient() {
       head: part(sel.head_id),
       shirt: part(sel.shirt_id),
       pants: part(sel.pants_id),
+      accessory: part(sel.accessory_id),
     };
   }, [pieces, sel]);
 
@@ -251,6 +258,7 @@ export default function AvatarClient() {
         head_id: null,
         shirt_id: null,
         pants_id: null,
+        accessory_id: null,
       });
       setMsg("Exclusive minifig removed");
       await reloadPiecesAndRequests();
@@ -281,6 +289,7 @@ export default function AvatarClient() {
       head_id: ex.head_id,
       shirt_id: ex.shirt_id,
       pants_id: ex.pants_id,
+      accessory_id: ex.accessory_id,
     });
     setPreviewPiece(null);
     setMsg("Exclusive minifig selected");
@@ -465,6 +474,7 @@ export default function AvatarClient() {
           head={preview.head}
           shirt={preview.shirt}
           pants={preview.pants}
+          accessory={preview.accessory}
           className="h-80 w-full max-w-sm sm:h-[22rem] sm:w-52"
         />
         <div className="w-full flex-1 space-y-3">
@@ -539,6 +549,7 @@ export default function AvatarClient() {
                   head={part(ex.head_id, ex.head_image, ex.head_back)}
                   shirt={part(ex.shirt_id, ex.shirt_image, ex.shirt_back)}
                   pants={part(ex.pants_id, ex.pants_image, ex.pants_back)}
+                  accessory={part(ex.accessory_id, ex.accessory_image, ex.accessory_back)}
                   autoRotate={false}
                   className="h-52 w-full"
                 />

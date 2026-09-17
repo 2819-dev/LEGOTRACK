@@ -16,12 +16,13 @@ export async function GET() {
     const sql = getSql();
     const rows = await sql`
       SELECT e.id, e.name, e.quantity, e.created_at,
-        e.helmet_id, e.hair_id, e.head_id, e.shirt_id, e.pants_id,
+        e.helmet_id, e.hair_id, e.head_id, e.shirt_id, e.pants_id, e.accessory_id,
         he.image_data AS helmet_image, he.image_back AS helmet_back,
         h.image_data AS hair_image, h.image_back AS hair_back,
         d.image_data AS head_image, d.image_back AS head_back,
         s.image_data AS shirt_image, s.image_back AS shirt_back,
         p.image_data AS pants_image, p.image_back AS pants_back,
+        ac.image_data AS accessory_image, ac.image_back AS accessory_back,
         (
           SELECT count(*)::int FROM avatars a WHERE a.exclusive_id = e.id
         ) AS taken_count
@@ -31,6 +32,7 @@ export async function GET() {
       LEFT JOIN avatar_pieces d ON d.id = e.head_id
       LEFT JOIN avatar_pieces s ON s.id = e.shirt_id
       LEFT JOIN avatar_pieces p ON p.id = e.pants_id
+      LEFT JOIN avatar_pieces ac ON ac.id = e.accessory_id
       ORDER BY e.created_at DESC
     `;
     const exclusives = rows.map((r) => {
@@ -64,6 +66,7 @@ export async function POST(req: Request) {
     const head_id = body.head_id ? String(body.head_id) : null;
     const shirt_id = body.shirt_id ? String(body.shirt_id) : null;
     const pants_id = body.pants_id ? String(body.pants_id) : null;
+    const accessory_id = body.accessory_id ? String(body.accessory_id) : null;
     const quantity = Math.max(1, Math.min(99, Number(body.quantity) || 1));
 
     if (!head_id || !shirt_id || !pants_id) {
@@ -74,9 +77,14 @@ export async function POST(req: Request) {
     }
 
     const sql = getSql();
-    const pieceIds = [helmet_id, hair_id, head_id, shirt_id, pants_id].filter(
-      Boolean
-    ) as string[];
+    const pieceIds = [
+      helmet_id,
+      hair_id,
+      head_id,
+      shirt_id,
+      pants_id,
+      accessory_id,
+    ].filter(Boolean) as string[];
 
     for (const pid of pieceIds) {
       const locked = await sql`
@@ -91,12 +99,13 @@ export async function POST(req: Request) {
 
     const rows = await sql`
       INSERT INTO exclusive_minifigs (
-        name, helmet_id, hair_id, head_id, shirt_id, pants_id, quantity
+        name, helmet_id, hair_id, head_id, shirt_id, pants_id, accessory_id, quantity
       )
       VALUES (
-        ${name}, ${helmet_id}, ${hair_id}, ${head_id}, ${shirt_id}, ${pants_id}, ${quantity}
+        ${name}, ${helmet_id}, ${hair_id}, ${head_id}, ${shirt_id}, ${pants_id},
+        ${accessory_id}, ${quantity}
       )
-      RETURNING id, name, helmet_id, hair_id, head_id, shirt_id, pants_id, quantity, created_at
+      RETURNING id, name, helmet_id, hair_id, head_id, shirt_id, pants_id, accessory_id, quantity, created_at
     `;
     const exclusive = rows[0] as { id: string };
 
@@ -178,6 +187,7 @@ export async function PUT(req: Request) {
             head_id = NULL,
             shirt_id = NULL,
             pants_id = NULL,
+            accessory_id = NULL,
             updated_at = now()
         WHERE user_id = ${session.id}
       `;
@@ -185,7 +195,7 @@ export async function PUT(req: Request) {
     }
 
     const rows = await sql`
-      SELECT id, helmet_id, hair_id, head_id, shirt_id, pants_id, quantity
+      SELECT id, helmet_id, hair_id, head_id, shirt_id, pants_id, accessory_id, quantity
       FROM exclusive_minifigs WHERE id = ${exclusiveId} LIMIT 1
     `;
     if (!rows[0]) return jsonError("Not found", 404);
@@ -196,6 +206,7 @@ export async function PUT(req: Request) {
       head_id: string | null;
       shirt_id: string | null;
       pants_id: string | null;
+      accessory_id: string | null;
       quantity: number;
     };
 
@@ -212,11 +223,11 @@ export async function PUT(req: Request) {
 
     await sql`
       INSERT INTO avatars (
-        user_id, helmet_id, hair_id, head_id, shirt_id, pants_id, exclusive_id, updated_at
+        user_id, helmet_id, hair_id, head_id, shirt_id, pants_id, accessory_id, exclusive_id, updated_at
       )
       VALUES (
         ${session.id}, ${ex.helmet_id}, ${ex.hair_id}, ${ex.head_id},
-        ${ex.shirt_id}, ${ex.pants_id}, ${exclusiveId}, now()
+        ${ex.shirt_id}, ${ex.pants_id}, ${ex.accessory_id}, ${exclusiveId}, now()
       )
       ON CONFLICT (user_id) DO UPDATE SET
         helmet_id = EXCLUDED.helmet_id,
@@ -224,6 +235,7 @@ export async function PUT(req: Request) {
         head_id = EXCLUDED.head_id,
         shirt_id = EXCLUDED.shirt_id,
         pants_id = EXCLUDED.pants_id,
+        accessory_id = EXCLUDED.accessory_id,
         exclusive_id = EXCLUDED.exclusive_id,
         updated_at = now()
     `;

@@ -16,6 +16,7 @@ type Person = {
   head_image: string | null;
   shirt_image: string | null;
   pants_image: string | null;
+  accessory_image: string | null;
   owns_count: number;
   built_count: number;
 };
@@ -71,6 +72,7 @@ export default function PeoplePage() {
               head={p.head_image}
               shirt={p.shirt_image}
               pants={p.pants_image}
+              accessory={p.accessory_image}
               size="sm"
             />
             <div className="min-w-0 flex-1">

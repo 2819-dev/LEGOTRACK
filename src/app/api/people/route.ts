@@ -18,6 +18,7 @@ export async function GET() {
       d.image_data AS head_image,
       s.image_data AS shirt_image,
       p.image_data AS pants_image,
+      ac.image_data AS accessory_image,
       (SELECT COUNT(*)::int FROM city_properties cp WHERE cp.owner_id = u.id) AS owns_count,
       (SELECT COUNT(*)::int FROM build_submissions bs WHERE bs.user_id = u.id AND bs.status = 'approved') AS built_count
     FROM users u
@@ -27,6 +28,7 @@ export async function GET() {
     LEFT JOIN avatar_pieces d ON d.id = a.head_id
     LEFT JOIN avatar_pieces s ON s.id = a.shirt_id
     LEFT JOIN avatar_pieces p ON p.id = a.pants_id
+    LEFT JOIN avatar_pieces ac ON ac.id = a.accessory_id
     WHERE u.role = 'player' OR u.role = 'admin'
     ORDER BY u.name ASC
   `;

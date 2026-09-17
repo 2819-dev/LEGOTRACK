@@ -53,7 +53,7 @@ type CatalogSet = {
   owner_name: string | null;
 };
 
-const CATEGORIES = ["helmet", "hair", "head", "shirt", "pants"] as const;
+const CATEGORIES = ["helmet", "hair", "head", "accessory", "shirt", "pants"] as const;
 
 export default function AdminPage() {
   const router = useRouter();
@@ -93,12 +93,14 @@ export default function AdminPage() {
     head_id: string | null;
     shirt_id: string | null;
     pants_id: string | null;
+    accessory_id: string | null;
   }>({
     helmet_id: null,
     hair_id: null,
     head_id: null,
     shirt_id: null,
     pants_id: null,
+    accessory_id: null,
   });
   const [exclusives, setExclusives] = useState<
     Array<{ id: string; name: string; quantity: number }>
@@ -406,6 +408,7 @@ export default function AdminPage() {
       head_id: null,
       shirt_id: null,
       pants_id: null,
+      accessory_id: null,
     });
     loadAll();
   }
@@ -714,6 +717,7 @@ export default function AdminPage() {
                   exclusivePick.helmet_id && "helmet",
                   exclusivePick.hair_id && "hair",
                   exclusivePick.head_id && "head",
+                  exclusivePick.accessory_id && "accessory",
                   exclusivePick.shirt_id && "shirt",
                   exclusivePick.pants_id && "pants",
                 ]

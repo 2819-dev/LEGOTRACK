@@ -134,7 +134,7 @@ export async function PATCH(req: Request) {
     if (!id) return jsonError("id required");
     if (
       category &&
-      !["helmet", "hair", "head", "shirt", "pants"].includes(category)
+      !["helmet", "hair", "head", "shirt", "pants", "accessory"].includes(category)
     ) {
       return jsonError("Invalid category");
     }
@@ -170,7 +170,8 @@ export async function DELETE(req: Request) {
         hair_id = CASE WHEN hair_id = ${id} THEN NULL ELSE hair_id END,
         head_id = CASE WHEN head_id = ${id} THEN NULL ELSE head_id END,
         shirt_id = CASE WHEN shirt_id = ${id} THEN NULL ELSE shirt_id END,
-        pants_id = CASE WHEN pants_id = ${id} THEN NULL ELSE pants_id END
+        pants_id = CASE WHEN pants_id = ${id} THEN NULL ELSE pants_id END,
+        accessory_id = CASE WHEN accessory_id = ${id} THEN NULL ELSE accessory_id END
     `;
     await sql`DELETE FROM avatar_pieces WHERE id = ${id}`;
     return jsonOk({ ok: true });

@@ -20,7 +20,7 @@ export type UserRow = {
 
 export type AvatarPiece = {
   id: string;
-  category: "helmet" | "hair" | "head" | "shirt" | "pants";
+  category: "helmet" | "hair" | "head" | "shirt" | "pants" | "accessory";
   label: string | null;
   image_data: string;
   image_back?: string | null;

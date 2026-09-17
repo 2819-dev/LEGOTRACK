@@ -21,7 +21,8 @@ export async function GET(
       h.image_data AS hair_image,
       d.image_data AS head_image,
       s.image_data AS shirt_image,
-      p.image_data AS pants_image
+      p.image_data AS pants_image,
+      ac.image_data AS accessory_image
     FROM users u
     LEFT JOIN avatars a ON a.user_id = u.id
     LEFT JOIN avatar_pieces he ON he.id = a.helmet_id
@@ -29,6 +30,7 @@ export async function GET(
     LEFT JOIN avatar_pieces d ON d.id = a.head_id
     LEFT JOIN avatar_pieces s ON s.id = a.shirt_id
     LEFT JOIN avatar_pieces p ON p.id = a.pants_id
+    LEFT JOIN avatar_pieces ac ON ac.id = a.accessory_id
     WHERE u.id = ${id}
     LIMIT 1
   `;

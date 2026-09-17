@@ -179,7 +179,7 @@ export async function fetchCatalogPng(imgUrl: string): Promise<Buffer | null> {
 export function mapBrickCategory(
   categoryRaw: string,
   name: string
-): "helmet" | "hair" | "head" | "shirt" | "pants" | null {
+): "helmet" | "hair" | "head" | "shirt" | "pants" | "accessory" | null {
   const cat = categoryRaw.toLowerCase();
   const nameL = name.toLowerCase();
   const c = `${cat} ${nameL}`;
@@ -247,17 +247,35 @@ export function mapBrickCategory(
     }
   }
 
-  if (c.includes("minifig") || c.includes("mini doll")) {
-    if (
-      c.includes("utensil") ||
-      c.includes("weapon") ||
-      c.includes("accessory") ||
-      c.includes("tool") ||
-      c.includes("food")
-    ) {
-      return null;
-    }
-    return null;
+  // Bags, backpacks, instruments, tools, food — sit between torso and head
+  if (
+    c.includes("bag") ||
+    c.includes("backpack") ||
+    c.includes("knapsack") ||
+    c.includes("purse") ||
+    c.includes("satchel") ||
+    c.includes("briefcase") ||
+    c.includes("suitcase") ||
+    c.includes("guitar") ||
+    c.includes("instrument") ||
+    c.includes("camera") ||
+    c.includes("binocular") ||
+    c.includes("life jacket") ||
+    c.includes("lifejacket") ||
+    c.includes("armor") ||
+    c.includes("armour") ||
+    c.includes("cape") ||
+    c.includes("quiver") ||
+    c.includes("utensil") ||
+    c.includes("weapon") ||
+    c.includes("accessory") ||
+    c.includes("tool") ||
+    c.includes("food") ||
+    (c.includes("minifig") &&
+      (c.includes("neck") || c.includes("shoulder") || c.includes("wear")))
+  ) {
+    return "accessory";
   }
+
   return null;
 }

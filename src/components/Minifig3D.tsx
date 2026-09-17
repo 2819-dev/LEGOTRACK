@@ -11,7 +11,7 @@ export type PartInfo = {
   back?: string | null;
   colorKey?: string | null;
   label?: string | null;
-  category?: "helmet" | "hair" | "head" | "shirt" | "pants";
+  category?: "helmet" | "hair" | "head" | "shirt" | "pants" | "accessory";
 } | null;
 
 function useCutoutTexture(url: string | null | undefined) {
@@ -103,12 +103,14 @@ function AssembledFig({
   head,
   shirt,
   pants,
+  accessory,
 }: {
   helmet?: PartInfo;
   hair?: PartInfo;
   head?: PartInfo;
   shirt?: PartInfo;
   pants?: PartInfo;
+  accessory?: PartInfo;
 }) {
   const top = helmet || hair;
   return (
@@ -127,6 +129,15 @@ function AssembledFig({
           position={[0, 0.15, 0]}
           size={[1.15, 1.15]}
           depth={0.11}
+        />
+      ) : null}
+      {/* Bags / accessories sit between torso and head, slightly forward */}
+      {accessory?.front ? (
+        <CutoutPart
+          {...accessory}
+          position={[0, 0.55, 0.08]}
+          size={[0.95, 0.7]}
+          depth={0.1}
         />
       ) : null}
       {head?.front ? (
@@ -164,6 +175,7 @@ export function Minifig3D({
   head,
   shirt,
   pants,
+  accessory,
   className = "",
   autoRotate = true,
 }: {
@@ -172,6 +184,7 @@ export function Minifig3D({
   head?: PartInfo | string | null;
   shirt?: PartInfo | string | null;
   pants?: PartInfo | string | null;
+  accessory?: PartInfo | string | null;
   className?: string;
   autoRotate?: boolean;
 }) {
@@ -182,8 +195,9 @@ export function Minifig3D({
       head: asPart(head),
       shirt: asPart(shirt),
       pants: asPart(pants),
+      accessory: asPart(accessory),
     }),
-    [helmet, hair, head, shirt, pants]
+    [helmet, hair, head, shirt, pants, accessory]
   );
 
   const hasAny = Boolean(
@@ -191,7 +205,8 @@ export function Minifig3D({
       parts.hair?.front ||
       parts.head?.front ||
       parts.shirt?.front ||
-      parts.pants?.front
+      parts.pants?.front ||
+      parts.accessory?.front
   );
 
   return (
@@ -248,7 +263,7 @@ export function Piece3D({
   back?: string | null;
   colorKey?: string | null;
   label?: string | null;
-  category?: "helmet" | "hair" | "head" | "shirt" | "pants";
+  category?: "helmet" | "hair" | "head" | "shirt" | "pants" | "accessory";
   className?: string;
 }) {
   return (
