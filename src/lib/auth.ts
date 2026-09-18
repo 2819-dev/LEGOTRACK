@@ -23,10 +23,12 @@ export type SessionUser = {
 };
 
 function shouldSecureCookies() {
+  // Always Secure on Netlify / HTTPS; allow plain cookies only for local http://localhost
   return (
     process.env.NODE_ENV === "production" ||
     process.env.CONTEXT === "production" ||
-    Boolean(process.env.URL?.startsWith("https"))
+    Boolean(process.env.URL?.startsWith("https")) ||
+    Boolean(process.env.NEXT_PUBLIC_APP_URL?.startsWith("https"))
   );
 }
 

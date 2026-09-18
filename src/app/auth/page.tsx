@@ -11,6 +11,8 @@ function AuthForm() {
   const router = useRouter();
   const search = useSearchParams();
   const [mode, setMode] = useState<Mode>("pick");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [kiosk, setKiosk] = useState(false);
@@ -33,6 +35,54 @@ function AuthForm() {
 
   const openSignup = !gateOn || kiosk;
   const openPlayerLogin = !gateOn || kiosk;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (mode === "register" && !openSignup) {
+      setError("Registration is closed on this device");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      // JSON + 200 Set-Cookie (not a 303 redirect) — Safari/iOS often drops
+      // cookies that arrive only on redirect responses.
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
+        body: JSON.stringify({ name, password, kiosk }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Something went wrong");
+        setBusy(false);
+        return;
+      }
+
+      // Confirm the session cookie actually stuck before leaving this page
+      const me = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "same-origin",
+      }).then((r) => r.json());
+      if (!me?.user) {
+        setError("Signed in, but the session did not stick. Try again.");
+        setBusy(false);
+        return;
+      }
+
+      let next = "/home";
+      if (data.mustChangePassword) next = "/change-password";
+      else if (data.role === "admin") next = "/admin";
+      else if (mode === "register" || data.needsAvatar) next = "/avatar?onboarding=1";
+      window.location.replace(next);
+    } catch {
+      setError("Network error");
+      setBusy(false);
+    }
+  }
 
   return (
     <main className="page-wrap flex min-h-dvh flex-col justify-center py-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
@@ -80,11 +130,8 @@ function AuthForm() {
       {(mode === "login" || (mode === "register" && openSignup)) && (
         <form
           className="panel mx-auto mt-10 w-full max-w-md space-y-5"
-          method="post"
-          action={mode === "login" ? "/api/auth/login" : "/api/auth/register"}
-          onSubmit={() => setBusy(true)}
+          onSubmit={submit}
         >
-          <input type="hidden" name="kiosk" value={kiosk ? "1" : "0"} />
           <h2 className="brand-title text-[clamp(1.7rem,5.5vw,2.3rem)]">
             {mode === "login"
               ? openPlayerLogin
@@ -97,9 +144,11 @@ function AuthForm() {
             <input
               className="field mt-2"
               name="name"
+              value={name}
               required
               autoComplete="username"
               enterKeyHint="next"
+              onChange={(e) => setName(e.target.value)}
             />
           </label>
           <label className="block text-base font-extrabold">
@@ -108,9 +157,11 @@ function AuthForm() {
               className="field mt-2"
               name="password"
               type="password"
+              value={password}
               required
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               enterKeyHint="go"
+              onChange={(e) => setPassword(e.target.value)}
             />
           </label>
           {error && (
@@ -141,9 +192,7 @@ function AuthForm() {
 
 export default function AuthPage() {
   return (
-    <Suspense
-      fallback={<main className="loading-screen">Loading…</main>}
-    >
+    <Suspense fallback={<main className="loading-screen">Loading…</main>}>
       <AuthForm />
     </Suspense>
   );
